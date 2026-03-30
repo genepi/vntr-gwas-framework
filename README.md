@@ -28,7 +28,7 @@ This repository documents the complete computational pipeline to integrate VNTR 
 
 > **Data availability:** Due to UK Biobank data access restrictions, we are unable to share non-aggregated data or sample IDs. Please apply for data access directly through the [UK Biobank](https://www.ukbiobank.ac.uk/).
 
-If you encounter any issues running the pipeline, please [open a GitHub issue](../../issues).
+If you encounter any issues running the pipeline, please [open a GitHub issue](../../issues). For other enquiries, contact [Sebastian Schönherr](https://genepi.i-med.ac.at/team/schoenherr-sebastian/).
 
 The pipeline consists of the following steps:
 
@@ -36,9 +36,9 @@ The pipeline consists of the following steps:
 2. Call KIV-2 VNTR variation from BAM/CRAM files
 3. Combine non-repetitive with repetitive region
 4. Estimate per-sample KIV-2 copy number
-5. Run a genome-wide association study (GWAS) for Lp(a) 
-6. Fine-map association signals using SuSiE (Sum of Single Effects)
-7. Extract variants + dosages for credible-set variants
+5. Run GWAS for Lp(a)
+6. Fine-map association signals using SuSiE
+7. Extract dosages for credible-set variants
 
 
 ## Step 1 - Extract *LPA*-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
