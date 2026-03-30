@@ -169,6 +169,20 @@ sh calc_estimates.sh
 
 ### 4.2 Estimate copy number and prepare phenotype file
 
+The Rmd script requires a tab-separated phenotype file (`ukb_allancestries.txt`) containing the following UK Biobank fields:
+
+| Column | UKB Field | Description |
+|---|---|---|
+| `f.eid` | — | Sample identifier |
+| `lpa_man` | — | Lp(a) plasma level (nmol/L), manually curated |
+| `f.21000.0.0` | [21000](https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=21000) | Ethnic background (used for ancestry stratification) |
+| `f.31.0.0` | [31](https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=31) | Sex |
+| `f.21022.0.0` | [21022](https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=21022) | Age at recruitment |
+| `f.22000.0.0` | [22000](https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=22000) | Genotype measurement batch |
+| `f.22009.0.1`–`f.22009.0.30` | [22009](https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=22009) | Genetic principal components 1–30 |
+
+Ancestry is derived from field 21000 using the following coding: White (1001–1003), Mixed (2001–2004), Asian (3001–3004), Black (4001–4003), Chinese (5).
+
 - Start an RStudio instance and open a terminal within RStudio.
 - Run the Rmd script to create the phenotype file (`scripts/step4/phenotype.Rmd`).
 - Ensure matching sample sets between VCF and phenotype file (especially necessary for fine-mapping):

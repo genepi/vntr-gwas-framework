@@ -79,7 +79,7 @@ estimates <- estimates %>%
 #nrow(estimates)
 nrow(estimates)
 ## read in ancestry data
-ancestry_data <- read.table("20250508_ukb_lpagwas_minset_allancestries.txt", header=TRUE, sep="\t")
+ancestry_data <- read.table("ukb_allancestries.txt", header=TRUE, sep="\t")
 
 ancestry_data <- ancestry_data %>%
   dplyr::mutate(FID = f.eid, IID = f.eid) %>%  # create FID and IID from f.eid
