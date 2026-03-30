@@ -174,7 +174,7 @@ The Rmd script requires a tab-separated phenotype file (`ukb_allancestries.txt`)
 | Column | UKB Field | Description |
 |---|---|---|
 | `f.eid` | — | Sample identifier |
-| `lpa_man` | — | Lp(a) plasma level (nmol/L), manually curated |
+| `f.30790.0.0` | [30790](https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=30790) | Lp(a) plasma level (nmol/L), including out-of-range values (requires separate UKB data request) |
 | `f.21000.0.0` | [21000](https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=21000) | Ethnic background (used for ancestry stratification) |
 | `f.31.0.0` | [31](https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=31) | Sex |
 | `f.21022.0.0` | [21022](https://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=21022) | Age at recruitment |
@@ -198,7 +198,7 @@ A genome-wide association study for Lp(a) is run using regenie via the nf-gwas N
 | | Files |
 |---|---|
 | **Input** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` (Step 3), `phenotype_ukb_estimates_ancestry.txt` + covariates file (Step 4), array genotypes `ukb22418_c6_b0_v2.*` (PLINK format) |
-| **Output** | GWAS summary statistics `lpa_man.regenie_<ancestry>.gz` |
+| **Output** | GWAS summary statistics `lpa.regenie_<ancestry>.gz` |
 | **Script** | `scripts/step5/04_gwas.config` (`nextflow run genepi/nf-gwas -c 04_gwas.config`) |
 
 ### 5.1 Prepare GWAS
@@ -217,7 +217,7 @@ Statistical fine-mapping is performed on the GWAS summary statistics using SuSiE
 
 | | Files |
 |---|---|
-| **Input** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` (Step 3, ancestry-filtered), `lpa_man.regenie_<ancestry>.gz` (GWAS results from Step 5), covariates file |
+| **Input** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` (Step 3, ancestry-filtered), `lpa.regenie_<ancestry>.gz` (GWAS results from Step 5), covariates file |
 | **Output** | Credible sets table, LD matrix (`UKB_<ancestry>_ld_residuals.txt`), SuSiE diagnostics plot (`output/susie_diagnostics_plot_*.png`) |
 | **Script** | `scripts/step6/prepare.sh`, `scripts/step6/finemapping.R` |
 

@@ -83,7 +83,7 @@ ancestry_data <- read.table("ukb_allancestries.txt", header=TRUE, sep="\t")
 
 ancestry_data <- ancestry_data %>%
   dplyr::mutate(FID = f.eid, IID = f.eid) %>%  # create FID and IID from f.eid
-  dplyr::select(FID, IID, lpa_man, f.21000.0.0, f.31.0.0, f.21022.0.0, f.22000.0.0,
+  dplyr::select(FID, IID, f.30790.0.0, f.21000.0.0, f.31.0.0, f.21022.0.0, f.22000.0.0,
          f.22009.0.1, f.22009.0.2, f.22009.0.3, f.22009.0.4, f.22009.0.5,
          f.22009.0.6, f.22009.0.7, f.22009.0.8, f.22009.0.9, f.22009.0.10,
          f.22009.0.11, f.22009.0.12, f.22009.0.13, f.22009.0.14, f.22009.0.15,
@@ -105,7 +105,7 @@ ancestry_data <- ancestry_data %>%
 
 estimates_joined <- ancestry_data %>%
   inner_join(estimates, by = c("FID" = "proband")) %>%
-  dplyr::mutate(inv_norm_BL_ibk_lpa = inverse_normal_transformation(lpa_man))
+  dplyr::mutate(inv_norm_BL_ibk_lpa = inverse_normal_transformation(f.30790.0.0))
 
 estimates_joined <- na.omit(estimates_joined)
 print("zeilen cleaned (no NA)")

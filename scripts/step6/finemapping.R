@@ -54,7 +54,7 @@ covariates <- fread("input/phenotype_ukb_estimates_afr_covariates.txt", header =
 nrow(covariates)
 # Remove unnecessary columns
 covariates$FID <- as.factor(covariates$FID)
-covariates <- covariates %>% dplyr::select(-IID, -lpa_man, -exons1_sum, -exons2_sum, 
+covariates <- covariates %>% dplyr::select(-IID, -f.30790.0.0, -exons1_sum, -exons2_sum,
                                            -ancestry, -kiv2_1, -kiv2_2, -cne_kiv2_1, -cne_kiv2_2, -inv_norm_BL_ibk_lpa)
 
 # Convert to matrix with FID as rownames
@@ -131,7 +131,7 @@ dir.create("output", showWarnings = FALSE)
 ## READ IN DATA AND CALCULATE Z-Scores
 ld_matrix <- as.matrix(fread("UKB_afr_ld_residuals.txt", header = TRUE))
 dim(ld_matrix)
-regenie <- fread("lpa_man.regenie_afr.gz", header = TRUE)
+regenie <- fread("lpa.regenie_afr.gz", header = TRUE)
 betahat <- regenie$BETA
 sebetahat <- regenie$SE
 z_scores <- betahat / sebetahat

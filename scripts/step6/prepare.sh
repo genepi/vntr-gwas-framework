@@ -2,13 +2,13 @@ set - e
 pops=("afr")
 for pop in "${pops[@]}"; do
 filename_vcf="ukb_kiv2_estimates_final_sorted_with_DS_noGT_${pop}.vcf.gz"
-filename_regenie="lpa_man.regenie_${pop}.gz"
+filename_regenie="lpa.regenie_${pop}.gz"
 filename_out="ukb_kiv2_estimates_final_sorted_with_DS_noGT_${pop}_filtered.vcf.gz"
 
 rm $filename_out
 rm $filename_regenie
 rm $yfilename_vcf
-cp input/lpa_man.regenie.gz $filename_regenie
+cp input/lpa.regenie.gz $filename_regenie
 cp input/ukb_combined_final_sorted_with_DS_noGT_afr.vcf.gz  $filename_vcf
 
 zcat $filename_regenie | awk -F'\t' 'BEGIN{OFS="\t"} NR>1 {print $1, $2, $4, $5}' > regenie.snps
