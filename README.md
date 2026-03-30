@@ -26,14 +26,16 @@ The pipeline consists of the following steps:
 
 The CRAMs are stored in a bucket that cannot be accessed directly. We therefore download the LPA CRAM files, extract the region, and upload the resulting BAMs to a RAP folder.
 
+### Input/Output
 | | Files |
 |---|---|
-| **Input** | `ids_by_ancestry.txt` (sample ID list), UKB WES CRAMs (`Bulk/Exome sequences/Exome OQFE CRAM files/`), GRCh38 reference genome |
-| **Output** | Per-sample LPA BAMs (region chr6:160530483–160665260), uploaded to `CRAMS/` on RAP |
+| **Input** | `ids_by_ancestry.txt` (e.g. full paths for a specific ancestry) |
+| **Output** | Per-sample LPA BAMs (region chr6:160530483–160665260) |
 
-- Start a new Cloud Workstation on the Research Analysis Platform.
-- Provide a sample ID list for your ancestry or a subset of samples.
-- Execute `scripts/step1/extract_lpa.sh`.
+### Workflow
+* Execute `dx find data --path "Bulk/Exome sequences/Exome OQFE CRAM files" --name "*.cram" > ids.txt`
+* Filter ids.txt by ancestry and save as `ids_by_ancestry.txt`
+* Execute `scripts/step1/extract_lpa.sh`.
 
 ## Step 2
 
