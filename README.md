@@ -84,7 +84,7 @@ params.contig="KIV2_6"
 params.region="ROI-8.bed"
 ```
 
-### 2.3 CNE estimation
+### 2.3 Enable realigned BAM output
 Required for Step 4. Enable output of realigned BAM data by adding the following to `local/realign_fastq.nf`:
 
 ```
@@ -99,6 +99,7 @@ nextflow run genepi/vntr-calling-nf -c ukb.config --profile docker
 ## Step 3 - Combine non-repetitive with repetitive region
 The VNTR calls from Step 2 are converted to VCF format and merged with TOPMed imputed SNPs covering the non-repetitive *LPA* locus. Dosage (DS) fields are harmonised across both sources to produce a single analysis-ready VCF.
 
+### Input/Output
 | | Files |
 |---|---|
 | **Input** | `ukb_rap.txt.gz` (VNTR calls from Step 2), `ukb21007_c6_b0_v1.bgen/.sample` (TOPMed imputed data, chr6 *LPA* locus) |
@@ -183,7 +184,7 @@ A genome-wide association study for Lp(a) is run using regenie via the nf-gwas N
 |---|---|
 | **Input** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` (Step 3), `phenotype_ukb_estimates_ancestry.txt` + covariates file (Step 4), array genotypes `ukb22418_c6_b0_v2.*` (PLINK format) |
 | **Output** | GWAS summary statistics `lpa_man.regenie_<ancestry>.gz` |
-| **Script** | `scripts/step5/gwas.config` (`nextflow run genepi/nf-gwas -c 04_gwas.config`) |
+| **Script** | `scripts/step5/04_gwas.config` (`nextflow run genepi/nf-gwas -c 04_gwas.config`) |
 
 ### 5.1 Prepare GWAS
 
@@ -197,7 +198,7 @@ nextflow run genepi/nf-gwas -c 04_gwas.config -profile docker
 
 ## Step 6 - Fine-map association signals using SuSiE
 
-Statistical fine-mapping is performed on the GWAS summary statistics using SuSiE (Sum of Single Effects). An LD matrix is computed from the ancestry-filtered VCF and used alongside the regenie output to identify credible sets of causal variants at the *LPA* locus.
+Statistical fine-mapping is performed on the GWAS summary statistics using SuSiE (Sum of Single Effects). An LD matrix is computed from the ancestry-filtered merged VCF and used alongside the regenie output to identify credible sets of causal variants at the *LPA* locus.
 
 | | Files |
 |---|---|
@@ -314,7 +315,7 @@ for credible-set variants`"]
 │   │   ├── calc_estimates.sh         # Step 4: bedtools coverage
 │   │   └── phenotype.Rmd             # Step 4: KIV-2 copy number + GWAS phenotype
 │   ├── step5/
-│   │   └── gwas.config               # Step 5: nf-gwas / regenie config
+│   │   └── 04_gwas.config            # Step 5: nf-gwas / regenie config
 │   ├── step6/
 │   │   ├── prepare.sh                # Step 6: subset VCF to regenie variants
 │   │   └── finemapping.R             # Step 6: SuSiE fine-mapping
