@@ -1,0 +1,7 @@
+name: dna-nexus
+channels:
+    - bioconda
+    - conda-forge
+    - defaults
+dependencies:
+    - dxpy=0.403.0

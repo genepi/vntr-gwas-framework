@@ -1,17 +1,17 @@
-# LPA KIV-2 VNTR Analysis — UK Biobank
+# Computational Pipeline for Resolving the Ancestry-Specific Genetic Architecture of LPA
 
 [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A524.x-brightgreen)](https://nextflow.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform: DNAnexus RAP](https://img.shields.io/badge/platform-DNAnexus%20RAP-blue)](https://ukbiobank.dnanexus.com/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
 
-> **Analysis pipeline for GWAS and fine-mapping of the Lipoprotein(a) KIV-2 VNTR locus across ancestry groups in the UK Biobank, executed on the DNAnexus Research Analysis Platform (RAP).**
-
 ---
 
 ## Overview
 
-The *LPA* gene encodes apolipoprotein(a), a major determinant of circulating Lp(a) concentrations, a causal risk factor for coronary artery disease. The gene contains a hypervariable Kringle IV type-2 (KIV-2) tandem repeat that is the primary genetic determinant of Lp(a) levels but is inaccessible to standard genotyping arrays and imputation. This repository documents the complete computational pipeline used to:
+This repository documents the complete computational pipeline to integrate VNTR variation into GWAS analysis. All analyses have been run on UKB RAP. If you are new to RAP, have a look at the [Getting started with RAP](#getting-started-with-rap) section below.
+
+The pipeline consists of the following steps:
 
 1. Extract LPA-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
 2. Call KIV-2 VNTR copy numbers from BAM files using a dedicated Nextflow pipeline
@@ -21,35 +21,178 @@ The *LPA* gene encodes apolipoprotein(a), a major determinant of circulating Lp(
 6. Fine-map association signals using SuSiE (Sum of Single Effects)
 7. Extract dosages for credible-set variants
 
-The pipeline is designed to run per ancestry group and has been applied to African (AFR), as well as other UK Biobank ancestry groups. Ancestry-specific sample lists (`ids.txt`) are the only input that changes between runs.
 
----
+## Step 1
 
-## Pipeline Overview
+The CRAMs are stored in a bucket that cannot be accessed directly. We therefore download the LPA CRAM files, extract the region, and upload the resulting BAMs to a RAP folder.
 
-```mermaid
-flowchart TD
-    A[UK Biobank WES CRAM files] -->|ancestry-specific ids.txt| B
-    B["Step 1 · Extract LPA region\nchr6:160,530,483–160,665,260\n01_extract_lpa/download.sh"] --> C
-    C["Step 2 · VNTR calling\nvntr-calling-nf · ROI-8 · JLR approach\n05_estimates_gwas/gwas.config + Docker"] --> D
-    D["Step 2 · Post-processing\nmutserve create-vcf\nPASS filter · ID fix"] --> F
+| | Files |
+|---|---|
+| **Input** | `ids_by_ancestry.txt` (sample ID list), UKB WES CRAMs (`Bulk/Exome sequences/Exome OQFE CRAM files/`), GRCh38 reference genome |
+| **Output** | Per-sample LPA BAMs (region chr6:160530483–160665260), uploaded to `CRAMS/` on RAP |
 
-    G[TOPMed Imputed BGEN] -->|plink2 region extract| H
-    H["Step 3 · Fix dosage fields\n03_fix_imputed/fix_dosage.sh\nGT → DS imputation"] --> F
+- Start a new Cloud Workstation on the Research Analysis Platform.
+- Provide a sample ID list for your ancestry or a subset of samples.
+- Execute `scripts/step1/extract_lpa.sh`.
 
-    F["Step 4 · Merge & annotate\n04_merge/merge.sh · annotate_dosage.sh\nCoordinate remap · DS annotation"] --> I
+## Step 2
 
-    C -->|realigned BAMs| J
-    B -->|LPA BAMs| J
-    J["Step 5a · TELIS coverage\n05_estimates_gwas/calc_estimates.sh\nbedtools coverage"] --> K
-    K["Step 5b · Phenotype creation\n05_estimates_gwas/phenotype.Rmd\ncne_kiv2 · RINT · ancestry filter"] --> L
+VNTR copy numbers are resolved using a dedicated Nextflow pipeline.
 
-    I --> L
-    L["Step 5c · GWAS\nnf-gwas · regenie\nadditive · RINT Lp(a)"] --> M
+| | Files |
+|---|---|
+| **Input** | LPA BAMs from Step 1, `kiv2.fasta` (KIV-2 reference), `ROI-8.bed` (region of interest) |
+| **Output** | VNTR calls (`ukb_rap.txt.gz`); optionally realigned BAMs (`realigned/`) needed for Step 4 |
 
-    I --> M
-    M["Step 6 · Fine-mapping\n06_finemapping/finemapping.R\nSuSiE RSS · covariate-adjusted LD"] --> N
-    N["Step 7 · Credible-set dosages\n07_snp_dosages/extract_dosages.sh\ngenomic-utils vcf-to-csv"]
+### Set up the pipeline
+```
+git clone https://github.com/genepi/vntr-calling-nf
+# Download ROI-8 (do not use signature approach; only validated in EUR)
+wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/refs/heads/main/paper_analysis/lpa/bed/hg38/ROI-8.bed
+# for EUR set: params.build="hg38" and remove params.region
+```
+
+### Create a config file
+Create `ukb.config`:
+```
+params.project="ukb_rap_ancestry"
+params.input="lpa_bams/*bam"
+params.reference="reference-data/kiv2.fasta"
+params.contig="KIV2_6"
+params.region="ROI-8.bed"
+```
+
+### CNE estimation (optional)
+Required for Step 4. Enable output of realigned BAM data by adding the following to `local/realign_fastq.nf`:
+
+```
+publishDir "${params.outdir}/realigned", mode: "copy"
+```
+
+### Run the pipeline
+```
+nextflow run main.nf -c ukb.config --profile docker
+```
+
+## Step 3
+
+| | Files |
+|---|---|
+| **Input** | `ukb_rap.txt.gz` (VNTR calls from Step 2), `ukb21007_c6_b0_v1.bgen/.sample` (TOPMed imputed data, chr6 LPA locus) |
+| **Output** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` — merged VCF of VNTR repetitive region + imputed non-repetitive region, with DS dosage field |
+
+### Convert VNTR results to a VCF file
+
+```
+wget https://github.com/seppinho/mutserve/releases/download/v2.0.3/mutserve.zip
+unzip mutserve.zip
+
+# Fix IDs to allow merging with imputed data
+zcat ukb_rap.txt.gz | sed -e 's/_23143_0_0_lpa.extracted.kiv2.realigned.bam//g' > ukb_rap_renamed.txt
+
+# Filter by PASS
+awk -F'\t' 'NR==1 || $2=="PASS"' ukb_rap_renamed.txt > ukb_rap_renamed_filtered.txt
+
+# Prepare reference (rename KIV2_6 to 6 to avoid merging issues)
+wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/refs/heads/main/reference-data/kiv2.fasta
+# Edit kiv2.fasta: change "KIV2_6" to "6"
+
+java -jar mutserve.jar create-vcf \
+    --input ukb_rap_renamed_filtered.txt \
+    --output ukb_rap_renamed_filtered.vcf.gz \
+    --reference kiv2.fasta
+```
+
+### Download the LPA non-repetitive region from TOPMed
+```
+qctool \
+-g "ukb21007_c6_b0_v1.bgen" \
+-s "ukb21007_c6_b0_v1.sample" \
+-incl-range 6:160530484-160665259 \
+-og "region_chr6.bgen"
+```
+
+### Fix dosage fields in the non-repetitive region
+The non-repetitive region may lack DS for 0/0 genotypes and sometimes contains only GT. We fix this by replacing GT-only entries with 0, 1, or 2 and by adding DS where DS is ".". The script is available in `scripts/step3`.
+
+```
+sh fix_dosage.sh
+```
+
+### Merge non-repetitive and repetitive regions
+```
+sh merge.sh
+sh dosage.sh
+```
+
+## Step 4
+
+| | Files |
+|---|---|
+| **Input** | LPA BAMs from Step 1 (`CRAMS/`), realigned BAMs from Step 2 (`realigned/`), BED files in `scripts/step4/input/` |
+| **Output** | `coverage_summary_ukb.txt` (TELIS coverage values); `phenotype_ukb_estimates_ancestry.txt` (per-sample KIV-2 copy number + Lp(a) phenotype + covariates) |
+
+### Compute coverage estimates (part 1)
+
+```
+sh calc_estimates.sh
+```
+
+### Estimate copy number and prepare phenotype file (part 2)
+
+- Start an RStudio instance and open a terminal within RStudio.
+- Run the Rmd script to create the phenotype file (`scripts/step4/phenotype.Rmd`).
+- Ensure matching sample sets between VCF and phenotype file (especially necessary for fine-mapping):
+
+```
+bcftools view --force-samples -S samples.txt -Oz -o <fixed VCF> <output of step 3>
+```
+
+## Step 5
+
+| | Files |
+|---|---|
+| **Input** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` (Step 3), `phenotype_ukb_estimates_ancestry.txt` + covariates file (Step 4), array genotypes `ukb22418_c6_b0_v2.*` (PLINK format) |
+| **Output** | GWAS summary statistics `lpa_man.regenie_<ancestry>.gz` |
+
+### Prepare GWAS
+
+- Download array data: `dx download "Bulk/Genotype Results/Genotype calls/ukb22418_c6_b0_v2*"`
+- Prepare covariates file: `cp phenotype_ukb_estimates_ancestry.txt phenotype_ukb_estimates_ancestry_covariates.txt`
+
+### Run GWAS
+```
+nextflow run pipelines/nf-gwas/main.nf -c 04_gwas.config -profile docker
+```
+
+## Step 6
+
+| | Files |
+|---|---|
+| **Input** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` (Step 3, ancestry-filtered), `lpa_man.regenie_<ancestry>.gz` (GWAS results from Step 5), covariates file |
+| **Output** | Credible sets table, LD matrix (`UKB_<ancestry>_ld_residuals.txt`), SuSiE diagnostics plot (`output/susie_diagnostics_plot_*.png`) |
+
+### Prepare fine-mapping input
+
+Remove all SNPs from the VCF that are not in the regenie output so both sets contain the same variants:
+```
+bash prepare.sh
+```
+
+### Run fine-mapping
+```
+Rscript finemapping.R
+```
+
+## Step 7: Extract dosages for credible-set variants
+
+| | Files |
+|---|---|
+| **Input** | `ukb_kiv2_estimates_final_sorted_with_DS_noGT_<ancestry>_filtered.vcf.gz` (Step 6), `input/afr_credible_sets_pos.txt` (genomic positions of credible-set variants) |
+| **Output** | `snps_dosages_estimates_<ancestry>.csv` — sample × credible-set variant dosage matrix |
+
+```
+bash scripts/step7/extract_dosages.sh
 ```
 
 ---
@@ -58,22 +201,30 @@ flowchart TD
 
 ```
 .
-├── 01_extract_lpa/
-│   └── download.sh               # Step 1: download CRAMs, extract LPA BAMs
-├── 03_fix_imputed/
-│   └── fix_dosage.sh             # Step 3: fix missing DS fields in imputed VCF
-├── 04_merge/
-│   ├── merge.sh                  # Step 4: merge VNTR + imputed VCF, remap coordinates
-│   └── annotate_dosage.sh        # Step 4: annotate merged VCF with DS field
-├── 05_estimates_gwas/
-│   ├── calc_estimates.sh         # Step 5a: TELIS bedtools coverage
-│   ├── phenotype.Rmd             # Step 5b: KIV-2 copy number + GWAS phenotype
-│   └── gwas.config               # Step 5c: nf-gwas / regenie config
-├── 06_finemapping/
-│   ├── prepare.sh                # Step 6: subset VCF to regenie variants
-│   └── finemapping.R             # Step 6: SuSiE fine-mapping
-├── 07_snp_dosages/
-│   └── extract_dosages.sh        # Step 7: credible-set SNP dosage extraction
+├── scripts/
+│   ├── environment/
+│   │   └── environment.yml           # conda environment for DNAnexus CLI
+│   ├── step1/
+│   │   └── extract_lpa.sh            # Step 1: download CRAMs, extract LPA BAMs
+│   ├── step3/
+│   │   ├── fix_dosage.sh             # Step 3: fix missing DS fields in imputed VCF
+│   │   ├── merge.sh                  # Step 3: merge VNTR + imputed VCF
+│   │   └── dosage.sh                 # Step 3: annotate merged VCF with DS field
+│   ├── step4/
+│   │   ├── input/
+│   │   │   ├── exons1.bed            # Step 4: BED file for TELIS coverage
+│   │   │   ├── exons2.bed
+│   │   │   ├── kiv2-1.bed
+│   │   │   └── kiv2-2.bed
+│   │   ├── calc_estimates.sh         # Step 4: TELIS bedtools coverage
+│   │   └── phenotype.Rmd             # Step 4: KIV-2 copy number + GWAS phenotype
+│   ├── step5/
+│   │   └── gwas.config               # Step 5: nf-gwas / regenie config
+│   ├── step6/
+│   │   ├── prepare.sh                # Step 6: subset VCF to regenie variants
+│   │   └── finemapping.R             # Step 6: SuSiE fine-mapping
+│   └── step7/
+│       └── extract_dosages.sh        # Step 7: credible-set SNP dosage extraction
 ├── .gitignore
 ├── LICENSE
 └── README.md
@@ -81,96 +232,56 @@ flowchart TD
 
 ---
 
-## Prerequisites
 
-### Platform
+## Getting started with RAP
 
-All cloud steps run on [DNAnexus Research Analysis Platform (RAP)](https://ukbiobank.dnanexus.com/) using a custom workstation snapshot (`file-J5y6fyQJP16y0Z622jKg5Bx6`) that bundles all required software.
-
-### Software
-
-| Tool | Version / Source | Purpose |
-|------|-----------------|---------|
-| [Nextflow](https://nextflow.io/) | ≥ 24.x | Pipeline orchestration |
-| [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) | main | KIV-2 VNTR calling |
-| [nf-gwas](https://github.com/genepi/nf-gwas) | main | GWAS via regenie |
-| [samtools](https://www.htslib.org/) | ≥ 1.17 | BAM/CRAM extraction |
-| [bcftools](https://www.htslib.org/) | ≥ 1.17 | VCF manipulation |
-| [plink2](https://www.cog-genomics.org/plink/2.0/) | ≥ 2.0 | BGEN → VCF conversion |
-| [qctool](https://www.well.ox.ac.uk/~gav/qctool_v2/) | v2.2.0 | BGEN subsetting |
-| [bedtools](https://bedtools.readthedocs.io/) | ≥ 2.30 | Coverage calculation |
-| [mutserve](https://github.com/seppinho/mutserve) | v2.0.3 | VNTR VCF creation |
-| [Docker](https://www.docker.com/) | ≥ 24 | Reproducible pipeline execution |
-| R ≥ 4.3 | CRAN | Statistics and fine-mapping |
-| R packages | `susieR`, `vcfR`, `data.table`, `tidyverse`, `Matrix` | Fine-mapping and data wrangling |
-
-### Local environment (for dx-toolkit)
-
-```bash
-conda env create --file conda/environment.yml
+### Setup
+Activate (or build) the conda environment locally to connect to RAP:
+```
+# Only if the environment does not exist
+conda env create --file environment.yml
 conda activate dna-nexus
 ```
 
----
+### Start a workstation
 
-## Reproducibility
-
-This pipeline is designed for exact reproducibility across runs and analysts:
-
-| Layer | Mechanism |
-|-------|-----------|
-| Cloud environment | DNAnexus workstation snapshot `file-J5y6fyQJP16y0Z622jKg5Bx6` — all bioinformatics tools pre-installed at fixed versions |
-| Pipeline execution | All Nextflow pipelines run with `--profile docker` — containerised, version-pinned |
-| VNTR calling | `vntr-calling-nf` ROI-8 BED file downloaded from a pinned GitHub commit ref |
-| R environment | `06_finemapping/finemapping.R` and `05_estimates_gwas/phenotype.Rmd` list all package versions; run `sessionInfo()` at the end of each script to capture the full R environment |
-| Ancestry selection | Defined exclusively by `ids.txt`; all downstream steps are deterministic given the same input |
-| Randomness | `susie_rss()` uses no stochastic steps; results are fully deterministic |
-
-### R Session Info
-
-To capture the R environment used for fine-mapping and phenotype creation, add the following at the end of any R script before submitting:
-
-```r
-writeLines(capture.output(sessionInfo()), "sessionInfo.txt")
+Start a basic workstation inside RAP:
+```
+dx run cloud_workstation -imax_session_length=1h --allow-ssh --brief -y --name "PROJECT_NAME"
+# Returns job-id
 ```
 
----
+### Start a workstation with a snapshot
 
-## Quality Control Checkpoints
+A snapshot bundles all software needed to run the pipeline and can be created with `dx-create-snapshot` ([docs](https://academy.dnanexus.com/interactivecloudcomputing/cloudworkstation#snapshot)). We recommend installing software into a mamba environment within the snapshot.
 
-| Step | Check | How |
-|------|-------|-----|
-| 1 | CRAM download completeness | Compare line count of `filtered_paths.txt` to uploaded BAMs |
-| 2 | VNTR call rate | Fraction of samples with `PASS` filter in `ukb_rap_renamed.txt` |
-| 3 | DS field coverage | `bcftools stats` on `region_chr6_fixed.vcf.gz`; expect no missing DS |
-| 4 | Sample overlap after merge | `common_ids.txt` size vs. input VCF sample counts |
-| 5a | Coverage symmetry | Relative difference `abs(kiv2_1 - kiv2_2) / mean` filtered at 99.9% |
-| 5b | Phenotype distribution | Histogram of `cne_kiv2` in `.Rmd` output; visual QC before GWAS |
-| 6 | SuSiE diagnostics | `lambda` from `estimate_s_rss()` (target < 0.1); z-score kriging plot |
-| 6 | LD matrix validity | Checked for symmetry and PSD; adjusted with `nearPD()` if needed |
-
----
-
-## Step-by-Step Instructions
-
-### Setup: Connect to DNAnexus RAP
-
-```bash
-dx login                    # authenticate (2FA required)
-dx find jobs --state running  # check running jobs
 ```
-
-Start a workstation with the pre-built snapshot:
-
-```bash
 dx run cloud_workstation \
   -imax_session_length=24h \
   -isnapshot=file-J5y6fyQJP16y0Z622jKg5Bx6 \
-  --allow-ssh --brief -y --name "lpa_vntr"
+  --allow-ssh \
+  --brief \
+  -y \
+  --name "lpa_vntr"
 ```
 
-Initialise the workstation environment:
+### Connect to an instance
 
+SSH configuration is only required once every 30 days:
+```
+dx ssh_config
+# Connect to your job
+dx ssh job-XXX
+```
+
+Find running machines:
+```
+dx find jobs --state running
+```
+
+### Initialise the workstation environment
+
+After connecting, activate the genomics environment:
 ```bash
 source ~/.bashrc
 eval "$(mamba shell hook --shell bash)"
@@ -181,196 +292,57 @@ dx cd $DX_PROJECT_CONTEXT_ID:
 
 ---
 
-### Step 1 — Extract LPA Region from WES CRAMs
+## Pipeline Overview
 
-List all exome CRAM files and filter for the target ancestry sample IDs (provide `ids.txt` for the desired ancestry group):
+```mermaid
+flowchart TD
+    A[(UKB WES CRAMs)] --> S1
 
-```bash
-dx find data --path "Bulk/Exome sequences/Exome OQFE CRAM files" --name "*.cram" > all_files.txt
-grep -Ff ids.txt all_files.txt | sed -n 's/.*\(\/Bulk\/.*\.cram\).*/\1/p' > filtered_paths.txt
+    S1["**Step 1**\nExtract LPA-region reads\nextract_lpa.sh"]
+    S1 --> BAM[(LPA BAMs)]
+
+    BAM --> S2
+
+    S2["**Step 2**\nCall KIV-2 VNTR copy numbers\nvntr-calling-nf"]
+    S2 --> VNTR[(VNTR calls\nukb_rap.txt.gz)]
+    S2 --> RBAM[(Realigned BAMs\noptional)]
+
+    T[(TOPMed imputed data\nchr6 BGEN)] --> S3
+
+    VNTR --> S3
+    S3["**Step 3**\nConvert VNTR → VCF\nFix dosage fields\nMerge with imputed SNPs"]
+    S3 --> MVCF[(Merged VCF\nrep + non-rep)]
+
+    RBAM --> S4
+    S4["**Step 4**\nTELIS coverage estimates\nKIV-2 copy number + phenotype"]
+    S4 --> PHENO[(Phenotype file)]
+
+    MVCF --> S5
+    PHENO --> S5
+    S5["**Step 5**\nGWAS\nnf-gwas / regenie"]
+    S5 --> GWAS[(GWAS results)]
+
+    MVCF --> S6
+    GWAS --> S6
+    S6["**Step 6**\nFine-mapping\nSuSiE"]
+    S6 --> CS[(Credible sets)]
+
+    MVCF --> S7
+    CS --> S7
+    S7["**Step 7**\nExtract dosages\nfor credible-set variants"]
+    S7 --> OUT[(Final dosage matrix)]
 ```
-
-Download each CRAM, extract the LPA locus (chr6:160,530,483–160,665,260), and upload the resulting BAM:
-
-```bash
-bash 01_extract_lpa/download.sh &> lpa_processing.log
-```
-
-**Output:** BAMs uploaded to `ukb_{ancestry}/01_bam_paths/lpa_bams/`
-
----
-
-### Step 2 — VNTR Calling
-
-```bash
-dx download -r ukb_{ancestry}/01_bam_paths/lpa_bams
-wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/refs/heads/main/paper_analysis/lpa/bed/hg38/ROI-8.bed
-nextflow run main.nf -c 05_estimates_gwas/gwas.config --profile docker
-```
-
-Convert and filter output:
-
-```bash
-zcat ukb_rap.txt.gz | sed -e 's/_23143_0_0_lpa.extracted.kiv2.realigned.bam//g' > ukb_rap_renamed.txt
-awk -F'\t' 'NR==1 || $2=="PASS"' ukb_rap_renamed.txt > ukb_rap_renamed_filtered.txt
-
-# Create VCF
-java -jar mutserve.jar create-vcf \
-    --input ukb_rap_renamed_filtered.txt \
-    --output ukb_rap_renamed_filtered.vcf.gz \
-    --reference kiv2.fasta
-```
-
-**Output:** `ukb_{ancestry}/02_vntr_pipeline/output/ukb_rap_renamed_filtered.vcf.gz`
-
----
-
-### Step 3 — Extract and Fix Imputed Data
-
-Extract LPA region from TOPMed imputed BGEN:
-
-```bash
-plink2 \
-  --bgen "Bulk/Imputation/Imputation from genotype (TOPmed)/ukb21007_c6_b0_v1.bgen" ref-first \
-  --sample "Bulk/Imputation/Imputation from genotype (TOPmed)/ukb21007_c6_b0_v1.sample" \
-  --chr 6 --from-bp 160530484 --to-bp 160665259 \
-  --export vcf bgz vcf-dosage=DS id-paste=iid \
-  --out region_chr6
-```
-
-Fix missing `DS` fields (some GT-only entries):
-
-```bash
-bash 03_fix_imputed/fix_dosage.sh
-```
-
-**Output:** `ukb_{ancestry}/03_extract_imputed/region_chr6_fixed.vcf.gz`
-
-> Note: The imputed BGEN contains all UK Biobank samples; per-ancestry subsetting happens at Step 5.2 when the phenotype file is created.
-
----
-
-### Step 4 — Merge VNTR + Imputed Data
-
-```bash
-bash 04_merge/merge.sh          # merge, remap repetitive-region coordinates, intersect samples
-bash 04_merge/annotate_dosage.sh  # annotate with DS field (fallback: AF+1 for VNTR variants)
-```
-
-**Output:** `ukb_{ancestry}/04_merge_dosage/ukb_combined_final_sorted_with_DS_noGT.vcf.gz`
-
----
-
-### Step 5 — KIV-2 Copy Number Estimates and GWAS
-
-**5.1 Coverage-based estimates (TELIS):**
-
-```bash
-bash 05_estimates_gwas/calc_estimates.sh    # produces coverage_summary_ukb.txt
-```
-
-**5.2 Phenotype file and copy number calculation (RStudio):**
-
-Open `05_estimates_gwas/phenotype.Rmd` in an RStudio instance on RAP. This:
-- Applies the TELIS formula: `cne_kiv2 = 0.5 * (kiv2_1 / (exons1/8) + kiv2_2 / (exons2/8))`
-- Joins with Lp(a) mass (`lpa_man`) and covariates (sex, age, genotyping array, 30 PCs)
-- Filters to the target ancestry group and writes `phenotype_ukb_estimates_{ancestry}.txt`
-
-**5.3 GWAS with regenie:**
-
-```bash
-nextflow run pipelines/nf-gwas/main.nf -c 05_estimates_gwas/gwas.config -profile docker
-```
-
-Key parameters (see `05_estimates_gwas/gwas.config`):
-- Phenotype: `lpa_man` (rank-inverse normal transformed)
-- Covariates: `cne_kiv2`, sex, age, array, PCs 1–30
-- Filters: imputation score ≥ 0.3, MAC ≥ 20
-- Test: additive
-
-**Output:** `ukb_{ancestry}/05_estimates_gwas/gwas/output/lpa_man.regenie.gz`
-
----
-
-### Step 6 — Fine-mapping (SuSiE)
-
-Subset VCF to variants in regenie output:
-
-```bash
-bash 06_finemapping/prepare.sh
-```
-
-Run SuSiE RSS with covariate-adjusted LD matrix estimated within the ancestry group (L = 50 components):
-
-```bash
-Rscript 06_finemapping/finemapping.R
-```
-
-This script:
-1. Extracts DS matrix from the filtered VCF
-2. Removes covariate effects from genotype matrix
-3. Computes pairwise LD from residuals
-4. Runs `susie_rss()` with z-scores from regenie
-5. Outputs credible sets to `output/{ancestry}_credible_sets.txt`
-
----
-
-### Step 7 — Extract Credible-Set SNP Dosages
-
-```bash
-bash 07_snp_dosages/extract_dosages.sh
-```
-
-**Output:** `snps_dosages_estimates_{ancestry}.csv` — one column per credible-set variant, rows are samples.
-
----
-
-## Data Availability
-
-All analyses use UK Biobank data (Application #XXXXX). Access requires a valid UK Biobank application:
-- **Exome sequencing:** `Bulk/Exome sequences/Exome OQFE CRAM files/`
-- **Imputed genotypes:** `Bulk/Imputation/Imputation from genotype (TOPmed)/ukb21007_c6_b0_v1.bgen`
-- **Genotyping array:** `Bulk/Genotype Results/Genotype calls/ukb22418_c6_b0_v2.*`
-
-The VNTR calling pipeline and reference data are publicly available:
-- [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf)
-- [ROI-8.bed](https://raw.githubusercontent.com/genepi/vntr-calling-nf/refs/heads/main/paper_analysis/lpa/bed/hg38/ROI-8.bed)
-- [kiv2.fasta reference](https://github.com/genepi/vntr-calling-nf/tree/main/reference-data)
-
----
-
-## Key Methods Notes
-
-- **ROI-8 / JLR approach** was used for VNTR calling. The signature approach was deliberately excluded as it has only been validated in European ancestry populations and is not expected to generalize across ancestries.
-- **Ancestry groups** are defined by UK Biobank self-reported ethnicity codes. The pipeline has been applied to African ancestry (codes 4001–4003) and is designed to run on any ancestry group by swapping the `ids.txt` sample list.
-- **Coordinate remapping:** KIV-2 exon positions in the repetitive reference space are linearly remapped to hg38 positions before merging with imputed data, enabling joint analysis on a common coordinate system.
-- **LD for fine-mapping** is estimated from covariate-adjusted genotype residuals within the ancestry-specific study sample rather than from an external reference panel, ensuring population-matched LD structure.
-
----
-
-## Citation
-
-> [Authors]. LPA KIV-2 VNTR GWAS and fine-mapping across ancestry groups in the UK Biobank. *[Journal]*, 2026.
-
-```bibtex
-@article{authors2026lpa,
-  title   = {{LPA} {KIV-2} {VNTR} {GWAS} and fine-mapping across ancestry groups in the {UK} {Biobank}},
-  author  = {[Authors]},
-  journal = {[Journal]},
-  year    = {2026},
-  doi     = {10.XXXX/XXXXXX}
-}
-```
-
-Scripts archived at: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
 
 ---
 
 ## Contributors
 
-- **Sebastian** — pipeline development, RAP infrastructure, GWAS
-- **Silvia Di Maio** — fine-mapping (SuSiE), covariate adjustment
-- **Johanna F. Schachtl-Riess** — fine-mapping methodology basis
+Institute of Genetic Epidemiology, Innsbruck
+
+- **Silvia Di Maio** — fine-mapping (SuSiE), variance explained, CVD analysis
+- **Johanna F. Schachtl-Riess** — fine-mapping methodology
+- **Sebastian Schönherr** — pipeline development, RAP infrastructure, GWAS
+
 
 ---
 

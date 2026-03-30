@@ -1,0 +1,154 @@
+---
+title: "CNE Estimatation + Phenotype Creation UKB"
+author: "Sebastian Schoenherr"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+library(knitr)
+library(ggplot2)
+library(stringr)
+library(dplyr)
+
+
+fit_lm_model <- function(response, covariates, data) {
+  # Quote covariates to avoid issues with special characters
+  covariates_safe <- paste0("`", covariates, "`")
+  
+  # Build formula
+  formula <- as.formula(
+    paste(response, "~", paste(covariates_safe, collapse = " + "))
+  )
+  
+  # Fit linear model
+  model <- lm(formula, data = data)
+  
+  return(model)
+}
+
+
+# create function for inverse normalization
+inverse_normal_transformation <- function (vector) {
+  # Source: https://yingji15.github.io/2019-08-17-inverse-normal-transformation/
+  return (qnorm((rank(vector,na.last="keep")-0.5)/sum(!is.na(vector))))
+}
+
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+estimates <- read.table("coverage_summary_ukb.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+estimates <- estimates %>%
+  mutate(
+    exome = as.numeric(str_extract(BAM, "\\d+"))
+  )
+
+estimates <- estimates %>%
+  pivot_wider(
+    id_cols = exome,
+    names_from = BED,
+    values_from = SUM
+  )
+
+estimates <- estimates %>%
+  rename(
+    exons1_sum = `exons1.bed`,
+    exons2_sum = `exons2.bed`,
+    kiv2_1 = `kiv2-1.bed`,
+    kiv2_2 = `kiv2-2.bed`,
+    proband = `exome`
+  )
+
+
+estimates <- estimates %>%
+  dplyr::mutate(
+    cne_kiv2_1 = ifelse(!is.na(exons1_sum), kiv2_1 / (1/8 * exons1_sum), NA),
+    cne_kiv2_2 = ifelse(!is.na(exons2_sum), kiv2_2 / (1/8 * exons2_sum), NA),
+    cne_kiv2 = 1/2 * (cne_kiv2_1 + cne_kiv2_2)
+  )
+
+#Relative difference tells you how big the difference is compared to the size of the numbers
+# Quite relaxed to just filter extremes. The filter now keeps rows where kiv2_1 and kiv2_2 differ by 99% or less relative to their average.
+rel_threshold <- 0.999
+#nrow(estimates)
+estimates <- estimates %>%
+  filter(abs(kiv2_1 - kiv2_2) / ((kiv2_1 + kiv2_2)/2) <= rel_threshold)
+#nrow(estimates)
+nrow(estimates)
+## read in ancestry data
+ancestry_data <- read.table("20250508_ukb_lpagwas_minset_allancestries.txt", header=TRUE, sep="\t")
+
+ancestry_data <- ancestry_data %>%
+  dplyr::mutate(FID = f.eid, IID = f.eid) %>%  # create FID and IID from f.eid
+  dplyr::select(FID, IID, lpa_man, f.21000.0.0, f.31.0.0, f.21022.0.0, f.22000.0.0,
+         f.22009.0.1, f.22009.0.2, f.22009.0.3, f.22009.0.4, f.22009.0.5,
+         f.22009.0.6, f.22009.0.7, f.22009.0.8, f.22009.0.9, f.22009.0.10,
+         f.22009.0.11, f.22009.0.12, f.22009.0.13, f.22009.0.14, f.22009.0.15,
+         f.22009.0.16, f.22009.0.17, f.22009.0.18, f.22009.0.19, f.22009.0.20,
+         f.22009.0.21, f.22009.0.22, f.22009.0.23, f.22009.0.24, f.22009.0.25,
+         f.22009.0.26, f.22009.0.27, f.22009.0.28, f.22009.0.29, f.22009.0.30)
+
+ancestry_data <- ancestry_data %>%
+  dplyr::mutate(
+    ancestry = case_when(
+      f.21000.0.0 %in% c(1001, 1002, 1003) ~ 1,  # White
+      f.21000.0.0 %in% c(2001, 2002, 2003, 2004) ~ 2,  # Mixed
+      f.21000.0.0 %in% c(3001, 3002, 3003, 3004) ~ 3,  # Asian
+      f.21000.0.0 %in% c(4001, 4002, 4003) ~ 4,  # Black
+      f.21000.0.0 %in% c(5) ~ 5,  # Chinese
+      TRUE ~ NA_real_
+    )
+  )
+
+estimates_joined <- ancestry_data %>%
+  inner_join(estimates, by = c("FID" = "proband")) %>%
+  dplyr::mutate(inv_norm_BL_ibk_lpa = inverse_normal_transformation(lpa_man))
+
+estimates_joined <- na.omit(estimates_joined)
+print("zeilen cleaned (no NA)")
+nrow(estimates_joined)
+
+estimates_africans <- estimates_joined  %>%
+  filter(ancestry == 4)
+nrow(estimates_africans)
+
+write.table(estimates_africans, 
+            "output/phenotype_ukb_estimates_afr.txt", 
+            sep = "\t",         # tab delimiter
+            row.names = FALSE,  # do not include row names
+            quote = FALSE)      # do not quote text fields
+
+afr_samples <- estimates_africans %>%
+  dplyr::select(FID)
+
+write.table(afr_samples, 
+            "output/samples_africans.txt", 
+            sep = "\t",         # tab delimiter
+            row.names = FALSE,  # do not include row names
+            quote = FALSE)      # do not quote text fields
+
+```
+## Results
+
+### Plots Africans
+```{r, message=FALSE, warning=FALSE, echo=TRUE}
+hist(estimates_africans$cne_kiv2,
+     breaks = 20,
+     col = "skyblue",
+     border = "black",
+     main = "Histogram of cne_kiv2 for Africans",
+     xlab = "cne_kiv2",
+     ylab = "Frequency")
+
+```
+
+### Variance Explained Africans
+```{r, message=FALSE, warning=FALSE}
+covariates_all <- c("cne_kiv2")
+model <- fit_lm_model("inv_norm_BL_ibk_lpa", covariates_all, estimates_africans)
+summary(model)$adj.r.squared
+```
+
