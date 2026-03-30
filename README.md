@@ -15,7 +15,7 @@ This work is supported by the Austrian Science Fund (FWF) under grant [PAT335742
 
 Institute of Genetic Epidemiology, Innsbruck
 
-- **Silvia Di Maio** — fine-mapping (SuSiE), variance explained, CVD analysis
+- **Silvia Di Maio** — pipeline development, fine-mapping (SuSiE), variance explained, CVD analysis
 - **Johanna F. Schachtl-Riess** — fine-mapping methodology
 - **Sebastian Schönherr** — pipeline development, RAP infrastructure, GWAS
 
@@ -90,7 +90,7 @@ nextflow run main.nf -c ukb.config --profile docker
 ```
 
 ## Step 3 - Combine non-repetitive with repetitive region
-This step creates a VCF file containing the non-repetitive with repetitive region.
+The VNTR calls from Step 2 are converted to VCF format and merged with TOPMed imputed SNPs covering the non-repetitive LPA locus. Dosage (DS) fields are harmonised across both sources to produce a single analysis-ready VCF.
 
 | | Files |
 |---|---|
@@ -141,7 +141,9 @@ sh merge.sh
 sh dosage.sh
 ```
 
-## Step 4
+## Step 4 - Estimate per-sample KIV-2 copy number
+
+Coverage-based copy number estimation (TELIS) is performed using the original LPA BAMs and the realigned BAMs from Step 2. The resulting per-sample KIV-2 copy numbers are combined with Lp(a) phenotype data and covariates into a single phenotype file used for GWAS.
 
 | | Files |
 |---|---|
@@ -164,7 +166,9 @@ sh calc_estimates.sh
 bcftools view --force-samples -S samples.txt -Oz -o <fixed VCF> <output of step 3>
 ```
 
-## Step 5
+## Step 5 - Run GWAS for Lp(a)
+
+A genome-wide association study for Lp(a) is run using regenie via the nf-gwas Nextflow pipeline. The merged VCF (Step 3) and phenotype file (Step 4) are used as input, with array genotypes for the step 1 whole-genome regression.
 
 | | Files |
 |---|---|
@@ -181,7 +185,9 @@ bcftools view --force-samples -S samples.txt -Oz -o <fixed VCF> <output of step 
 nextflow run pipelines/nf-gwas/main.nf -c 04_gwas.config -profile docker
 ```
 
-## Step 6
+## Step 6 - Fine-map association signals using SuSiE
+
+Statistical fine-mapping is performed on the GWAS summary statistics using SuSiE (Sum of Single Effects). An LD matrix is computed from the ancestry-filtered VCF and used alongside the regenie output to identify credible sets of causal variants at the LPA locus.
 
 | | Files |
 |---|---|
@@ -335,11 +341,8 @@ dx find jobs --state running
 
 ### Initialise the workstation environment
 
-After connecting, activate the genomics environment:
+After connecting, activate the connection to the buckets:
 ```bash
-source ~/.bashrc
-eval "$(mamba shell hook --shell bash)"
-mamba activate genomics
 unset DX_WORKSPACE_ID
 dx cd $DX_PROJECT_CONTEXT_ID:
 ```
