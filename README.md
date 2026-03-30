@@ -50,6 +50,7 @@ The CRAMs are stored in a bucket that cannot be accessed directly. We therefore 
 |---|---|
 | **Input** | `ids_by_ancestry.txt` (e.g. full paths for a specific ancestry) |
 | **Output** | Per-sample LPA BAMs (region chr6:160530483–160665260) |
+| **Script** | `scripts/step1/extract_lpa.sh` |
 
 ### Workflow
 * Execute `dx find data --path "Bulk/Exome sequences/Exome OQFE CRAM files" --name "*.cram" > ids.txt`
@@ -62,8 +63,9 @@ VNTR variation is resolved using a previously [published Nextflow pipeline](http
 
 | | Files |
 |---|---|
-| **Input** | LPA BAMs from Step 1|
+| **Input** | LPA BAMs from Step 1 |
 | **Output** | VNTR calls (`ukb_rap.txt.gz`); realigned BAMs (`realigned/`) needed for Step 4 |
+| **Script** | `nextflow run main.nf -c ukb.config` ([vntr-calling-nf](https://github.com/genepi/vntr-calling-nf)) |
 
 ### 2.1 Set up the pipeline
 ```
@@ -102,6 +104,7 @@ The VNTR calls from Step 2 are converted to VCF format and merged with TOPMed im
 |---|---|
 | **Input** | `ukb_rap.txt.gz` (VNTR calls from Step 2), `ukb21007_c6_b0_v1.bgen/.sample` (TOPMed imputed data, chr6 LPA locus) |
 | **Output** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` — merged VCF of VNTR repetitive region + imputed non-repetitive region, with DS dosage field |
+| **Script** | `scripts/step3/fix_dosage.sh`, `scripts/step3/merge.sh`, `scripts/step3/dosage.sh` |
 
 ### 3.1 Convert VNTR results to a VCF file
 
@@ -155,6 +158,7 @@ Coverage-based copy number estimation (CNE) is performed using the original LPA 
 |---|---|
 | **Input** | LPA BAMs from Step 1 (`CRAMS/`), realigned BAMs from Step 2 (`realigned/`), BED files in `scripts/step4/input/` |
 | **Output** | `coverage_summary_ukb.txt`; `phenotype_ukb_estimates_ancestry.txt` (per-sample KIV-2 copy number + Lp(a) phenotype + covariates) |
+| **Script** | `scripts/step4/calc_estimates.sh`, `scripts/step4/phenotype.Rmd` |
 
 ### 4.1 Compute coverage estimates 
 
@@ -180,6 +184,7 @@ A genome-wide association study for Lp(a) is run using regenie via the nf-gwas N
 |---|---|
 | **Input** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` (Step 3), `phenotype_ukb_estimates_ancestry.txt` + covariates file (Step 4), array genotypes `ukb22418_c6_b0_v2.*` (PLINK format) |
 | **Output** | GWAS summary statistics `lpa_man.regenie_<ancestry>.gz` |
+| **Script** | `scripts/step5/gwas.config` (`nextflow run pipelines/nf-gwas/main.nf -c 04_gwas.config`) |
 
 ### 5.1 Prepare GWAS
 
@@ -199,6 +204,7 @@ Statistical fine-mapping is performed on the GWAS summary statistics using SuSiE
 |---|---|
 | **Input** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` (Step 3, ancestry-filtered), `lpa_man.regenie_<ancestry>.gz` (GWAS results from Step 5), covariates file |
 | **Output** | Credible sets table, LD matrix (`UKB_<ancestry>_ld_residuals.txt`), SuSiE diagnostics plot (`output/susie_diagnostics_plot_*.png`) |
+| **Script** | `scripts/step6/prepare.sh`, `scripts/step6/finemapping.R` |
 
 ### 6.1 Prepare fine-mapping input
 
@@ -220,6 +226,7 @@ Genotype dosages are extracted for each variant in the credible sets identified 
 |---|---|
 | **Input** | `ukb_kiv2_estimates_final_sorted_with_DS_noGT_<ancestry>_filtered.vcf.gz` (Step 6), `input/afr_credible_sets_pos.txt` (genomic positions of credible-set variants) |
 | **Output** | `snps_dosages_estimates_<ancestry>.csv` — sample × credible-set variant dosage matrix |
+| **Script** | `scripts/step7/extract_dosages.sh` |
 
 ```
 bash scripts/step7/extract_dosages.sh
