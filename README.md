@@ -26,7 +26,7 @@ Lipoprotein(a) [Lp(a)] is a major heritable cardiovascular risk factor whose pla
 
 This repository documents the complete computational pipeline to integrate VNTR variation into GWAS analysis. All analyses have been run on UKB RAP. If you are new to RAP, have a look at the [Getting started with RAP](#getting-started-with-rap) section below.
 
-> **Data availability:** Due to UK Biobank data access restrictions, we are unable to share non-aggregated data or sample IDs. Please apply for data access directly through the [UK Biobank](https://www.ukbiobank.ac.uk/).
+> **Data availability:** Due to UK Biobank data access restrictions, we are unable to share non-aggregated data or sample IDs. Analyses were conducted under UKB application number **XXXXX**. Please apply for data access directly through the [UK Biobank](https://www.ukbiobank.ac.uk/).
 
 If you encounter any issues running the pipeline, please [open a GitHub issue](../../issues). For other enquiries, contact [Sebastian Schönherr](https://genepi.i-med.ac.at/team/schoenherr-sebastian/).
 
@@ -93,8 +93,10 @@ publishDir "${params.outdir}/realigned", mode: "copy"
 
 ### 2.4 Run the pipeline
 ```
-nextflow run genepi/vntr-calling-nf -c ukb.config --profile docker
+nextflow run genepi/vntr-calling-nf -r <version> -c ukb.config --profile docker
 ```
+
+> **Note:** Pin `-r` to a specific release tag (e.g. `-r v1.2.0`) to ensure reproducibility. Check available releases at [github.com/genepi/vntr-calling-nf](https://github.com/genepi/vntr-calling-nf/releases).
 
 ## Step 3 - Combine non-repetitive with repetitive region
 The VNTR calls from Step 2 are converted to VCF format and merged with TOPMed imputed SNPs covering the non-repetitive *LPA* locus. Dosage (DS) fields are harmonised across both sources to produce a single analysis-ready VCF.
@@ -199,9 +201,9 @@ A genome-wide association study for Lp(a) is run using regenie via the nf-gwas N
 
 | | Files |
 |---|---|
-| **Input** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` (Step 3), `phenotype_ukb_estimates_ancestry.txt` + covariates file (Step 4), array genotypes `ukb22418_c6_b0_v2.*` (PLINK format) |
+| **Input** | `ukb_combined_final_sorted_with_DS_noGT_afr.vcf.gz` (Step 4, ancestry-filtered), `phenotype_ukb_estimates_ancestry.txt` + covariates file (Step 4), array genotypes `ukb22418_c6_b0_v2.*` (PLINK format) |
 | **Output** | GWAS summary statistics `lpa.regenie_<ancestry>.gz` |
-| **Script** | `scripts/step5/04_gwas.config` (`nextflow run genepi/nf-gwas -c 04_gwas.config`) |
+| **Script** | `scripts/step5/gwas.config` (`nextflow run genepi/nf-gwas -c gwas.config`) |
 
 ### 5.1 Prepare GWAS
 
@@ -210,7 +212,7 @@ A genome-wide association study for Lp(a) is run using regenie via the nf-gwas N
 
 ### 5.2 Run GWAS
 ```
-nextflow run genepi/nf-gwas -c 04_gwas.config -profile docker
+nextflow run genepi/nf-gwas -c gwas.config -profile docker
 ```
 
 ## Step 6 - Fine-map association signals using SuSiE
@@ -219,13 +221,25 @@ Statistical fine-mapping is performed on the GWAS summary statistics using SuSiE
 
 | | Files |
 |---|---|
-| **Input** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` (Step 3, ancestry-filtered), `lpa.regenie_<ancestry>.gz` (GWAS results from Step 5), covariates file |
+| **Input** | `input/ukb_combined_final_sorted_with_DS_noGT_afr.vcf.gz` (Step 4, ancestry-filtered VCF), `input/lpa.regenie.gz` (GWAS results from Step 5, renamed) |
 | **Output** | Credible sets table, LD matrix (`UKB_<ancestry>_ld_residuals.txt`), SuSiE diagnostics plot (`output/susie_diagnostics_plot_*.png`) |
 | **Script** | `scripts/step6/prepare.sh`, `scripts/step6/finemapping.R` |
 
 ### 6.1 Prepare fine-mapping input
 
-Remove all SNPs from the VCF that are not in the regenie output so both sets contain the same variants:
+Create an `input/` directory and place the following files in it before running the script:
+
+```
+mkdir -p input
+
+# Ancestry-filtered VCF from Step 4
+cp ukb_combined_final_sorted_with_DS_noGT_afr.vcf.gz input/
+
+# GWAS summary statistics from Step 5 — rename to lpa.regenie.gz
+cp <nf-gwas results dir>/f.30790.0.0.regenie.gz input/lpa.regenie.gz
+```
+
+Then run the script, which subsets the VCF to only the variants present in the regenie output:
 ```
 bash prepare.sh
 ```
@@ -241,9 +255,17 @@ Genotype dosages are extracted for each variant in the credible sets identified 
 
 | | Files |
 |---|---|
-| **Input** | `ukb_kiv2_estimates_final_sorted_with_DS_noGT_<ancestry>_filtered.vcf.gz` (Step 6), `input/credible_sets_pos.txt` (genomic positions of credible-set variants) |
-| **Output** | `snps_dosages_estimates_<ancestry>.csv` — sample × credible-set variant dosage matrix |
-| **Script** | `scripts/step7/extract_dosages.sh` |
+| **Input** | `input/ukb_kiv2_estimates_final_sorted_with_DS_noGT_afr_filtered.vcf.gz` (Step 6 output), `input/afr_credible_sets_pos.txt` (Step 6 output) |
+| **Output** | `snps_dosages_estimates_afr.csv` — sample × credible-set variant dosage matrix |
+| **Script** | `scripts/step7/extract_dosages.sh` (requires `genomic-utils.jar`) |
+
+Place the Step 6 outputs into `input/` before running:
+
+```
+mkdir -p input
+cp ukb_kiv2_estimates_final_sorted_with_DS_noGT_afr_filtered.vcf.gz input/
+cp output/afr_credible_sets_pos.txt input/
+```
 
 ---
 
@@ -282,9 +304,15 @@ rep + non-rep)]
     S4["`**Step 4**
 CNE
 KIV-2 copy number + phenotype`"]
-    S4 --> PHENO[(Phenotype file)]
+    S4 --> PHENO[(Phenotype file
++ sample list)]
 
-    MVCF --> S5
+    MVCF --> FILTER["`bcftools subset
+end of Step 4`"]
+    PHENO --> FILTER
+    FILTER --> AFVCF[(Ancestry-filtered VCF)]
+
+    AFVCF --> S5
     PHENO --> S5
     G[(Array genotypes
 PLINK format)] --> S5
@@ -293,14 +321,14 @@ GWAS
 nf-gwas / regenie`"]
     S5 --> GWAS[(GWAS results)]
 
-    MVCF --> S6
+    AFVCF --> S6
     GWAS --> S6
     S6["`**Step 6**
 Fine-mapping
 SuSiE`"]
     S6 --> CS[(Credible sets)]
     S6 --> FVCF[(Filtered VCF
-ancestry-specific)]
+credible-set variants only)]
 
     FVCF --> S7
     CS --> S7
@@ -309,6 +337,24 @@ Extract dosages
 for credible-set variants`"]
     S7 --> OUT[(Final dosage matrix)]
 ```
+
+## Software Versions
+
+| Tool | Version | Used in |
+|---|---|---|
+| Nextflow | ≥24.x | Steps 2, 5 |
+| [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) | pin with `-r <tag>` | Step 2 |
+| [nf-gwas](https://github.com/genepi/nf-gwas) | pin with `-r <tag>` | Step 5 |
+| mutserve | 2.0.3 | Step 3 |
+| qctool | — | Step 3 |
+| bcftools | — | Steps 3, 4, 6 |
+| bedtools | — | Step 4 |
+| R | — | Steps 4, 6 |
+| genomic-utils | — | Step 7 |
+
+R packages used in Steps 4 and 6: `dplyr`, `tidyr`, `ggplot2`, `stringr`, `knitr` (Step 4); `susieR`, `vcfR`, `Matrix`, `data.table`, `tidyverse`, `R.utils` (Step 6). Pin package versions using `renv` or record `sessionInfo()` output for reproducibility.
+
+---
 
 ## Scripts Structure
 
@@ -332,7 +378,7 @@ for credible-set variants`"]
 │   │   ├── calc_estimates.sh         # Step 4: bedtools coverage
 │   │   └── phenotype.Rmd             # Step 4: KIV-2 copy number + GWAS phenotype
 │   ├── step5/
-│   │   └── 04_gwas.config            # Step 5: nf-gwas / regenie config
+│   │   └── gwas.config            # Step 5: nf-gwas / regenie config
 │   ├── step6/
 │   │   ├── prepare.sh                # Step 6: subset VCF to regenie variants
 │   │   └── finemapping.R             # Step 6: SuSiE fine-mapping

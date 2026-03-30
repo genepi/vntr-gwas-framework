@@ -1,4 +1,4 @@
-set - e
+set -e
 pops=("afr")
 for pop in "${pops[@]}"; do
 filename_vcf="ukb_kiv2_estimates_final_sorted_with_DS_noGT_${pop}.vcf.gz"
@@ -7,7 +7,7 @@ filename_out="ukb_kiv2_estimates_final_sorted_with_DS_noGT_${pop}_filtered.vcf.g
 
 rm $filename_out
 rm $filename_regenie
-rm $yfilename_vcf
+rm -f $filename_vcf
 cp input/lpa.regenie.gz $filename_regenie
 cp input/ukb_combined_final_sorted_with_DS_noGT_afr.vcf.gz  $filename_vcf
 
