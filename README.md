@@ -65,7 +65,7 @@ VNTR variation is resolved using a previously [published Nextflow pipeline](http
 |---|---|
 | **Input** | *LPA* BAMs from Step 1 |
 | **Output** | VNTR calls (`ukb_rap.txt.gz`); realigned BAMs (`realigned/`) needed for Step 4 |
-| **Script** | `nextflow run main.nf -c ukb.config` ([vntr-calling-nf](https://github.com/genepi/vntr-calling-nf)) |
+| **Script** | `nextflow run genepi/vntr-calling-nf -c ukb.config` ([vntr-calling-nf](https://github.com/genepi/vntr-calling-nf)) |
 
 ### 2.1 Set up the pipeline
 ```
@@ -94,7 +94,7 @@ publishDir "${params.outdir}/realigned", mode: "copy"
 
 ### 2.4 Run the pipeline
 ```
-nextflow run main.nf -c ukb.config --profile docker
+nextflow run genepi/vntr-calling-nf -c ukb.config --profile docker
 ```
 
 ## Step 3 - Combine non-repetitive with repetitive region
@@ -184,7 +184,7 @@ A genome-wide association study for Lp(a) is run using regenie via the nf-gwas N
 |---|---|
 | **Input** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` (Step 3), `phenotype_ukb_estimates_ancestry.txt` + covariates file (Step 4), array genotypes `ukb22418_c6_b0_v2.*` (PLINK format) |
 | **Output** | GWAS summary statistics `lpa_man.regenie_<ancestry>.gz` |
-| **Script** | `scripts/step5/gwas.config` (`nextflow run pipelines/nf-gwas/main.nf -c 04_gwas.config`) |
+| **Script** | `scripts/step5/gwas.config` (`nextflow run genepi/nf-gwas -c 04_gwas.config`) |
 
 ### 5.1 Prepare GWAS
 
@@ -193,7 +193,7 @@ A genome-wide association study for Lp(a) is run using regenie via the nf-gwas N
 
 ### 5.2 Run GWAS
 ```
-nextflow run pipelines/nf-gwas/main.nf -c 04_gwas.config -profile docker
+nextflow run genepi/nf-gwas -c 04_gwas.config -profile docker
 ```
 
 ## Step 6 - Fine-map association signals using SuSiE
