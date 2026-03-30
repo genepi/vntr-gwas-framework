@@ -154,19 +154,20 @@ sh dosage.sh
 
 Coverage-based copy number estimation (CNE) is performed using the original *LPA* BAMs and the realigned BAMs from Step 2. The resulting per-sample KIV-2 copy numbers are combined with Lp(a) phenotype data and covariates into a single phenotype file used for GWAS.
 
+### Input/Output
 | | Files |
 |---|---|
 | **Input** | *LPA* BAMs from Step 1 (`CRAMS/`), realigned BAMs from Step 2 (`realigned/`), BED files in `scripts/step4/input/` |
 | **Output** | `coverage_summary_ukb.txt`; `phenotype_ukb_estimates_ancestry.txt` (per-sample KIV-2 copy number + Lp(a) phenotype + covariates) |
 | **Script** | `scripts/step4/calc_estimates.sh`, `scripts/step4/phenotype.Rmd` |
 
-### 4.1 Compute coverage estimates 
+### 4.1 Compute coverage estimates
 
 ```
 sh calc_estimates.sh
 ```
 
-### 4.2 Estimate copy number and prepare phenotype file 
+### 4.2 Estimate copy number and prepare phenotype file
 
 - Start an RStudio instance and open a terminal within RStudio.
 - Run the Rmd script to create the phenotype file (`scripts/step4/phenotype.Rmd`).
@@ -224,7 +225,7 @@ Genotype dosages are extracted for each variant in the credible sets identified 
 
 | | Files |
 |---|---|
-| **Input** | `ukb_kiv2_estimates_final_sorted_with_DS_noGT_<ancestry>_filtered.vcf.gz` (Step 6), `input/afr_credible_sets_pos.txt` (genomic positions of credible-set variants) |
+| **Input** | `ukb_kiv2_estimates_final_sorted_with_DS_noGT_<ancestry>_filtered.vcf.gz` (Step 6), `input/credible_sets_pos.txt` (genomic positions of credible-set variants) |
 | **Output** | `snps_dosages_estimates_<ancestry>.csv` — sample × credible-set variant dosage matrix |
 | **Script** | `scripts/step7/extract_dosages.sh` |
 
@@ -325,7 +326,6 @@ for credible-set variants`"]
 
 ---
 
-
 ## Getting started with RAP
 
 ### Setup
@@ -351,7 +351,7 @@ A snapshot bundles all software needed to run the pipeline and can be created wi
 ```
 dx run cloud_workstation \
   -imax_session_length=24h \
-  -isnapshot=file-J5y6fyQJP16y0Z622jKg5Bx6 \
+  -isnapshot=file-XX \
   --allow-ssh \
   --brief \
   -y \
