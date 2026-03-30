@@ -26,7 +26,7 @@ Lipoprotein(a) [Lp(a)] is a major heritable cardiovascular risk factor whose pla
 
 This repository documents the complete computational pipeline to integrate VNTR variation into GWAS analysis. All analyses have been run on UKB RAP. If you are new to RAP, have a look at the [Getting started with RAP](#getting-started-with-rap) section below.
 
-> **Data availability:** Due to UK Biobank data access restrictions, we are unable to share non-aggregated data or sample IDs. Analyses were conducted under UKB application number **XXXXX**. Please apply for data access directly through the [UK Biobank](https://www.ukbiobank.ac.uk/).
+> **Data availability:** Due to UK Biobank data access restrictions, we are unable to share non-aggregated data or sample IDs. Analyses were conducted under UKB application number **62905**. Please apply for data access directly through the [UK Biobank](https://www.ukbiobank.ac.uk/).
 
 If you encounter any issues running the pipeline, please [open a GitHub issue](../../issues). For other enquiries, contact [Sebastian Schönherr](https://genepi.i-med.ac.at/team/schoenherr-sebastian/).
 
@@ -96,7 +96,7 @@ publishDir "${params.outdir}/realigned", mode: "copy"
 nextflow run genepi/vntr-calling-nf -r <version> -c ukb.config --profile docker
 ```
 
-> **Note:** Pin `-r` to a specific release tag (e.g. `-r v1.2.0`) to ensure reproducibility. Check available releases at [github.com/genepi/vntr-calling-nf](https://github.com/genepi/vntr-calling-nf/releases).
+> **Note:** Pin `-r` to a specific release tag (current: `-r v0.4.9`) to ensure reproducibility. Check available releases at [github.com/genepi/vntr-calling-nf](https://github.com/genepi/vntr-calling-nf/releases).
 
 ## Step 3 - Combine non-repetitive with repetitive region
 The VNTR calls from Step 2 are converted to VCF format and merged with TOPMed imputed SNPs covering the non-repetitive *LPA* locus. Dosage (DS) fields are harmonised across both sources to produce a single analysis-ready VCF.
@@ -343,8 +343,8 @@ for credible-set variants`"]
 | Tool | Version | Used in |
 |---|---|---|
 | Nextflow | ≥24.x | Steps 2, 5 |
-| [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) | pin with `-r <tag>` | Step 2 |
-| [nf-gwas](https://github.com/genepi/nf-gwas) | pin with `-r <tag>` | Step 5 |
+| [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) | 0.4.9 | Step 2 |
+| [nf-gwas](https://github.com/genepi/nf-gwas) | 1.0.11 | Step 5 |
 | mutserve | 2.0.3 | Step 3 |
 | qctool | — | Step 3 |
 | bcftools | — | Steps 3, 4, 6 |
