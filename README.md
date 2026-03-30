@@ -238,22 +238,23 @@ flowchart TD
 
     BAM --> S2
 
-    S2["**Step 2**\nCall KIV-2 VNTR copy numbers\nvntr-calling-nf"]
+    S2["**Step 2**\nCall KIV-2 VNTR variation\nvntr-calling-nf"]
     S2 --> VNTR[(VNTR calls\nukb_rap.txt.gz)]
-    S2 --> RBAM[(Realigned BAMs\noptional)]
+    S2 --> RBAM[(Realigned BAMs)]
 
     T[(TOPMed imputed data\nchr6 BGEN)] --> S3
-
     VNTR --> S3
     S3["**Step 3**\nConvert VNTR → VCF\nFix dosage fields\nMerge with imputed SNPs"]
     S3 --> MVCF[(Merged VCF\nrep + non-rep)]
 
+    BAM --> S4
     RBAM --> S4
     S4["**Step 4**\nCNE\nKIV-2 copy number + phenotype"]
     S4 --> PHENO[(Phenotype file)]
 
     MVCF --> S5
     PHENO --> S5
+    G[(Array genotypes\nPLINK format)] --> S5
     S5["**Step 5**\nGWAS\nnf-gwas / regenie"]
     S5 --> GWAS[(GWAS results)]
 
@@ -261,8 +262,9 @@ flowchart TD
     GWAS --> S6
     S6["**Step 6**\nFine-mapping\nSuSiE"]
     S6 --> CS[(Credible sets)]
+    S6 --> FVCF[(Filtered VCF\nancestry-specific)]
 
-    MVCF --> S7
+    FVCF --> S7
     CS --> S7
     S7["**Step 7**\nExtract dosages\nfor credible-set variants"]
     S7 --> OUT[(Final dosage matrix)]
