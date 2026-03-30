@@ -13,11 +13,11 @@ This work is supported by the Austrian Science Fund (FWF) under grant [PAT335742
 ---
 ## Contributors
 
-Institute of Genetic Epidemiology, Innsbruck
+[Institute of Genetic Epidemiology](https://genepi.i-med.ac.at/), Innsbruck
 
-- **Silvia Di Maio** — pipeline development, fine-mapping (SuSiE), variance explained, CVD analysis
-- **Johanna F. Schachtl-Rieß** — fine-mapping methodology
-- **Sebastian Schönherr** — pipeline development, RAP infrastructure, GWAS
+- **[Silvia Di Maio](https://genepi.i-med.ac.at/team/di-maio-silvia/)** — pipeline development, fine-mapping (SuSiE), variance explained, CVD analysis
+- **[Johanna F. Schachtl-Rieß](https://genepi.i-med.ac.at/team/schachtl-riess-johanna/)** — fine-mapping methodology
+- **[Sebastian Schönherr](https://genepi.i-med.ac.at/team/schoenherr-sebastian/)** — pipeline development, RAP infrastructure, GWAS
 
 ---
 ## Overview
