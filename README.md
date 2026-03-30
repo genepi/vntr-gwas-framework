@@ -1,4 +1,4 @@
-# Computational Pipeline for Resolving the Ancestry-Specific Genetic Architecture of LPA
+# Computational Pipeline for Resolving the Ancestry-Specific Genetic Architecture of *LPA*
 
 [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A524.x-brightgreen)](https://nextflow.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -32,7 +32,7 @@ If you encounter any issues running the pipeline, please [open a GitHub issue](.
 
 The pipeline consists of the following steps:
 
-1. Extract LPA-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
+1. Extract *LPA*-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
 2. Call KIV-2 VNTR variation from BAM/CRAM files
 3. Combine non-repetitive with repetitive region
 4. Estimate per-sample KIV-2 copy number
@@ -41,15 +41,15 @@ The pipeline consists of the following steps:
 7. Extract variants + dosages for credible-set variants
 
 
-## Step 1 - Extract LPA-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
+## Step 1 - Extract *LPA*-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
 
-The CRAMs are stored in a bucket that cannot be accessed directly. We therefore download the LPA CRAM files and extract the region.
+The CRAMs are stored in a bucket that cannot be accessed directly. We therefore download the *LPA* CRAM files and extract the region.
 
 ### Input/Output
 | | Files |
 |---|---|
 | **Input** | `ids_by_ancestry.txt` (e.g. full paths for a specific ancestry) |
-| **Output** | Per-sample LPA BAMs (region chr6:160530483–160665260) |
+| **Output** | Per-sample *LPA* BAMs (region chr6:160530483–160665260) |
 | **Script** | `scripts/step1/extract_lpa.sh` |
 
 ### Workflow
@@ -63,7 +63,7 @@ VNTR variation is resolved using a previously [published Nextflow pipeline](http
 
 | | Files |
 |---|---|
-| **Input** | LPA BAMs from Step 1 |
+| **Input** | *LPA* BAMs from Step 1 |
 | **Output** | VNTR calls (`ukb_rap.txt.gz`); realigned BAMs (`realigned/`) needed for Step 4 |
 | **Script** | `nextflow run main.nf -c ukb.config` ([vntr-calling-nf](https://github.com/genepi/vntr-calling-nf)) |
 
@@ -98,11 +98,11 @@ nextflow run main.nf -c ukb.config --profile docker
 ```
 
 ## Step 3 - Combine non-repetitive with repetitive region
-The VNTR calls from Step 2 are converted to VCF format and merged with TOPMed imputed SNPs covering the non-repetitive LPA locus. Dosage (DS) fields are harmonised across both sources to produce a single analysis-ready VCF.
+The VNTR calls from Step 2 are converted to VCF format and merged with TOPMed imputed SNPs covering the non-repetitive *LPA* locus. Dosage (DS) fields are harmonised across both sources to produce a single analysis-ready VCF.
 
 | | Files |
 |---|---|
-| **Input** | `ukb_rap.txt.gz` (VNTR calls from Step 2), `ukb21007_c6_b0_v1.bgen/.sample` (TOPMed imputed data, chr6 LPA locus) |
+| **Input** | `ukb_rap.txt.gz` (VNTR calls from Step 2), `ukb21007_c6_b0_v1.bgen/.sample` (TOPMed imputed data, chr6 *LPA* locus) |
 | **Output** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` — merged VCF of VNTR repetitive region + imputed non-repetitive region, with DS dosage field |
 | **Script** | `scripts/step3/fix_dosage.sh`, `scripts/step3/merge.sh`, `scripts/step3/dosage.sh` |
 
@@ -128,7 +128,7 @@ java -jar mutserve.jar create-vcf \
     --reference kiv2.fasta
 ```
 
-### 3.2 Download the LPA non-repetitive region from TOPMed
+### 3.2 Download the *LPA* non-repetitive region from TOPMed
 ```
 qctool \
 -g "ukb21007_c6_b0_v1.bgen" \
@@ -152,11 +152,11 @@ sh dosage.sh
 
 ## Step 4 - Estimate per-sample KIV-2 copy number
 
-Coverage-based copy number estimation (CNE) is performed using the original LPA BAMs and the realigned BAMs from Step 2. The resulting per-sample KIV-2 copy numbers are combined with Lp(a) phenotype data and covariates into a single phenotype file used for GWAS.
+Coverage-based copy number estimation (CNE) is performed using the original *LPA* BAMs and the realigned BAMs from Step 2. The resulting per-sample KIV-2 copy numbers are combined with Lp(a) phenotype data and covariates into a single phenotype file used for GWAS.
 
 | | Files |
 |---|---|
-| **Input** | LPA BAMs from Step 1 (`CRAMS/`), realigned BAMs from Step 2 (`realigned/`), BED files in `scripts/step4/input/` |
+| **Input** | *LPA* BAMs from Step 1 (`CRAMS/`), realigned BAMs from Step 2 (`realigned/`), BED files in `scripts/step4/input/` |
 | **Output** | `coverage_summary_ukb.txt`; `phenotype_ukb_estimates_ancestry.txt` (per-sample KIV-2 copy number + Lp(a) phenotype + covariates) |
 | **Script** | `scripts/step4/calc_estimates.sh`, `scripts/step4/phenotype.Rmd` |
 
@@ -198,7 +198,7 @@ nextflow run pipelines/nf-gwas/main.nf -c 04_gwas.config -profile docker
 
 ## Step 6 - Fine-map association signals using SuSiE
 
-Statistical fine-mapping is performed on the GWAS summary statistics using SuSiE (Sum of Single Effects). An LD matrix is computed from the ancestry-filtered VCF and used alongside the regenie output to identify credible sets of causal variants at the LPA locus.
+Statistical fine-mapping is performed on the GWAS summary statistics using SuSiE (Sum of Single Effects). An LD matrix is computed from the ancestry-filtered VCF and used alongside the regenie output to identify credible sets of causal variants at the *LPA* locus.
 
 | | Files |
 |---|---|
