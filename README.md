@@ -16,23 +16,29 @@ This work is supported by the Austrian Science Fund (FWF) under grant [PAT335742
 Institute of Genetic Epidemiology, Innsbruck
 
 - **Silvia Di Maio** — pipeline development, fine-mapping (SuSiE), variance explained, CVD analysis
-- **Johanna F. Schachtl-Riess** — fine-mapping methodology
+- **Johanna F. Schachtl-Rieß** — fine-mapping methodology
 - **Sebastian Schönherr** — pipeline development, RAP infrastructure, GWAS
 
 --- 
 ## Overview
 
+Lipoprotein(a) [Lp(a)] is a major heritable cardiovascular risk factor whose plasma levels are largely determined by variation at the *LPA* locus. A key source of this variation is the kringle IV type 2 (KIV-2) variable number tandem repeat (VNTR), a highly repetitive region that is refractory to standard short-read alignment and therefore routinely excluded from GWAS. Accurately resolving KIV-2 copy number and intra-repeat sequence variation is essential for capturing the full genetic architecture of Lp(a) and for identifying causal variants through fine-mapping.
+
 This repository documents the complete computational pipeline to integrate VNTR variation into GWAS analysis. All analyses have been run on UKB RAP. If you are new to RAP, have a look at the [Getting started with RAP](#getting-started-with-rap) section below.
+
+> **Data availability:** Due to UK Biobank data access restrictions, we are unable to share non-aggregated data or sample IDs. Please apply for data access directly through the [UK Biobank](https://www.ukbiobank.ac.uk/).
+
+If you encounter any issues running the pipeline, please [open a GitHub issue](../../issues).
 
 The pipeline consists of the following steps:
 
 1. Extract LPA-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
 2. Call KIV-2 VNTR variation from BAM/CRAM files
-3. Combine non-repetetive with repeteive region
+3. Combine non-repetitive with repetitive region
 4. Estimate per-sample KIV-2 copy number
 5. Run a genome-wide association study (GWAS) for Lp(a) 
 6. Fine-map association signals using SuSiE (Sum of Single Effects)
-7. Extract dosages for credible-set variants
+7. Extract variants + dosages for credible-set variants
 
 
 ## Step 1 - Extract LPA-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
@@ -143,20 +149,20 @@ sh dosage.sh
 
 ## Step 4 - Estimate per-sample KIV-2 copy number
 
-Coverage-based copy number estimation (TELIS) is performed using the original LPA BAMs and the realigned BAMs from Step 2. The resulting per-sample KIV-2 copy numbers are combined with Lp(a) phenotype data and covariates into a single phenotype file used for GWAS.
+Coverage-based copy number estimation (CNE) is performed using the original LPA BAMs and the realigned BAMs from Step 2. The resulting per-sample KIV-2 copy numbers are combined with Lp(a) phenotype data and covariates into a single phenotype file used for GWAS.
 
 | | Files |
 |---|---|
 | **Input** | LPA BAMs from Step 1 (`CRAMS/`), realigned BAMs from Step 2 (`realigned/`), BED files in `scripts/step4/input/` |
 | **Output** | `coverage_summary_ukb.txt`; `phenotype_ukb_estimates_ancestry.txt` (per-sample KIV-2 copy number + Lp(a) phenotype + covariates) |
 
-### 4.1 Compute coverage estimates (part 1)
+### 4.1 Compute coverage estimates 
 
 ```
 sh calc_estimates.sh
 ```
 
-### 4.2 Estimate copy number and prepare phenotype file (part 2)
+### 4.2 Estimate copy number and prepare phenotype file 
 
 - Start an RStudio instance and open a terminal within RStudio.
 - Run the Rmd script to create the phenotype file (`scripts/step4/phenotype.Rmd`).
@@ -206,7 +212,9 @@ bash prepare.sh
 Rscript finemapping.R
 ```
 
-## Step 7: Extract dosages for credible-set variants
+## Step 7 - Extract dosages for credible-set variants
+
+Genotype dosages are extracted for each variant in the credible sets identified in Step 6. The output is a per-sample dosage matrix used for downstream association and variance-explained analyses.
 
 | | Files |
 |---|---|
@@ -241,7 +249,7 @@ flowchart TD
     S3 --> MVCF[(Merged VCF\nrep + non-rep)]
 
     RBAM --> S4
-    S4["**Step 4**\nTELIS coverage estimates\nKIV-2 copy number + phenotype"]
+    S4["**Step 4**\nCNE\nKIV-2 copy number + phenotype"]
     S4 --> PHENO[(Phenotype file)]
 
     MVCF --> S5
@@ -275,11 +283,11 @@ flowchart TD
 │   │   └── dosage.sh                 # Step 3: annotate merged VCF with DS field
 │   ├── step4/
 │   │   ├── input/
-│   │   │   ├── exons1.bed            # Step 4: BED file for TELIS coverage
+│   │   │   ├── exons1.bed            # Step 4: BED file for coverage
 │   │   │   ├── exons2.bed
 │   │   │   ├── kiv2-1.bed
 │   │   │   └── kiv2-2.bed
-│   │   ├── calc_estimates.sh         # Step 4: TELIS bedtools coverage
+│   │   ├── calc_estimates.sh         # Step 4: bedtools coverage
 │   │   └── phenotype.Rmd             # Step 4: KIV-2 copy number + GWAS phenotype
 │   ├── step5/
 │   │   └── gwas.config               # Step 5: nf-gwas / regenie config
