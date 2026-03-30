@@ -19,7 +19,7 @@ Institute of Genetic Epidemiology, Innsbruck
 - **Johanna F. Schachtl-Rieß** — fine-mapping methodology
 - **Sebastian Schönherr** — pipeline development, RAP infrastructure, GWAS
 
---- 
+---
 ## Overview
 
 Lipoprotein(a) [Lp(a)] is a major heritable cardiovascular risk factor whose plasma levels are largely determined by variation at the *LPA* locus. A key source of this variation is the kringle IV type 2 (KIV-2) variable number tandem repeat (VNTR), a highly repetitive region that is refractory to standard short-read alignment and therefore routinely excluded from GWAS. Accurately resolving KIV-2 copy number and intra-repeat sequence variation is essential for capturing the full genetic architecture of Lp(a) and for identifying causal variants through fine-mapping.
@@ -61,6 +61,7 @@ The CRAMs are stored in a bucket that cannot be accessed directly. We therefore 
 
 VNTR variation is resolved using a previously [published Nextflow pipeline](https://github.com/genepi/vntr-calling-nf).
 
+### Input/Output
 | | Files |
 |---|---|
 | **Input** | *LPA* BAMs from Step 1 |
@@ -68,10 +69,8 @@ VNTR variation is resolved using a previously [published Nextflow pipeline](http
 | **Script** | `nextflow run genepi/vntr-calling-nf -c ukb.config` ([vntr-calling-nf](https://github.com/genepi/vntr-calling-nf)) |
 
 ### 2.1 Set up the pipeline
+Download the ROI-8 BED file (do not use the signature approach; only validated in EUR). For EUR, set `params.build="hg38"` and remove `params.region`.
 ```
-git clone https://github.com/genepi/vntr-calling-nf
-# Download ROI-8 (do not use signature approach; only validated in EUR)
-# for EUR set: params.build="hg38" and remove params.region
 wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/refs/heads/main/paper_analysis/lpa/bed/hg38/ROI-8.bed
 ```
 
@@ -178,7 +177,7 @@ bcftools view --force-samples -S samples.txt -Oz -o <fixed VCF> <output of step 
 
 ## Step 5 - Run GWAS for Lp(a)
 
-A genome-wide association study for Lp(a) is run using regenie via the nf-gwas Nextflow pipeline. The merged VCF (Step 3) and phenotype file (Step 4) are used as input, with array genotypes for the step 1 whole-genome regression.
+A genome-wide association study for Lp(a) is run using regenie via the nf-gwas Nextflow pipeline. The merged VCF (Step 3) and phenotype file (Step 4) are used as input, with array genotypes for regenie's whole-genome regression step.
 
 | | Files |
 |---|---|
@@ -227,10 +226,6 @@ Genotype dosages are extracted for each variant in the credible sets identified 
 | **Input** | `ukb_kiv2_estimates_final_sorted_with_DS_noGT_<ancestry>_filtered.vcf.gz` (Step 6), `input/afr_credible_sets_pos.txt` (genomic positions of credible-set variants) |
 | **Output** | `snps_dosages_estimates_<ancestry>.csv` — sample × credible-set variant dosage matrix |
 | **Script** | `scripts/step7/extract_dosages.sh` |
-
-```
-bash scripts/step7/extract_dosages.sh
-```
 
 ---
 
