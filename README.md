@@ -185,10 +185,12 @@ Ancestry is derived from field 21000 using the following coding: White (1001–1
 
 - Start an RStudio instance and open a terminal within RStudio.
 - Run the Rmd script to create the phenotype file (`scripts/step4/phenotype.Rmd`).
-- Ensure matching sample sets between VCF and phenotype file (especially necessary for fine-mapping):
+- Ensure matching sample sets between VCF and phenotype file (especially necessary for fine-mapping). The Rmd script writes the ancestry-specific sample list to `output/samples_<ancestry>.txt` (e.g. `samples_africans.txt`). Use this to subset the merged VCF from Step 3:
 
 ```
-bcftools view --force-samples -S samples.txt -Oz -o <fixed VCF> <output of step 3>
+bcftools view --force-samples -S output/samples_africans.txt \
+  -Oz -o ukb_combined_final_sorted_with_DS_noGT_afr.vcf.gz \
+  ukb_combined_final_sorted_with_DS_noGT.vcf.gz
 ```
 
 ## Step 5 - Run combined GWAS for Lp(a) trait
