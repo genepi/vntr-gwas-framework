@@ -36,7 +36,7 @@ The pipeline consists of the following steps:
 2. Call KIV-2 VNTR variation from BAM/CRAM files
 3. Combine non-repetitive with repetitive region
 4. Estimate per-sample KIV-2 copy number
-5. Run GWAS for Lp(a)
+5. Run combined GWAS for Lp(a) trait
 6. Fine-map association signals using SuSiE
 7. Extract dosages for credible-set variants
 
@@ -177,7 +177,7 @@ sh calc_estimates.sh
 bcftools view --force-samples -S samples.txt -Oz -o <fixed VCF> <output of step 3>
 ```
 
-## Step 5 - Run GWAS for Lp(a)
+## Step 5 - Run combined GWAS for Lp(a) trait
 
 A genome-wide association study for Lp(a) is run using regenie via the nf-gwas Nextflow pipeline. The merged VCF (Step 3) and phenotype file (Step 4) are used as input, with array genotypes for regenie's whole-genome regression step.
 
