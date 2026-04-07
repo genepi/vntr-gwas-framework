@@ -28,9 +28,10 @@ This work is supported by the Austrian Science Fund (FWF) under grant [PAT335742
 
 [Institute of Genetic Epidemiology](https://genepi.i-med.ac.at/), Innsbruck
 
-- **[Silvia Di Maio](https://genepi.i-med.ac.at/team/di-maio-silvia/)** — pipeline development, fine-mapping (SuSiE), variance explained, CVD analysis
-- **[Johanna F. Schachtl-Rieß](https://genepi.i-med.ac.at/team/schachtl-riess-johanna/)** — fine-mapping methodology
-- **[Sebastian Schönherr](https://genepi.i-med.ac.at/team/schoenherr-sebastian/)** — pipeline development, RAP infrastructure, GWAS
+- **[Silvia Di Maio](https://genepi.i-med.ac.at/team/di-maio-silvia/)** 
+- **[Johanna F. Schachtl-Rieß](https://genepi.i-med.ac.at/team/schachtl-riess-johanna/)**
+- **[Stefan Coassin](https://genepi.i-med.ac.at/team/coassin-stefan/)** 
+- **[Sebastian Schönherr](https://genepi.i-med.ac.at/team/schoenherr-sebastian/)** 
 
 ---
 ## Overview
@@ -43,9 +44,17 @@ This repository documents the complete computational pipeline to integrate VNTR 
 
 If you encounter any issues running the pipeline, please [open a GitHub issue](../../issues). For other enquiries, contact [Sebastian Schönherr](https://genepi.i-med.ac.at/team/schoenherr-sebastian/).
 
-## Pipeline Steps
+## Pipeline Overview
 
-### Pipeline Overview
+The pipeline consists of the following steps:
+
+1. Extract *LPA*-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
+2. Call KIV-2 VNTR variation from BAM/CRAM files
+3. Combine non-repetitive with repetitive region
+4. Estimate per-sample KIV-2 copy number
+5. Run combined GWAS for Lp(a) trait
+6. Fine-map association signals using SuSiE
+7. Extract dosages for credible-set variants
 
 
 ```mermaid
@@ -114,18 +123,6 @@ Extract dosages
 for credible-set variants`"]
     S7 --> OUT[(Final dosage matrix)]
 ```
-
-### Individual Steps 
-The pipeline consists of the following steps:
-
-1. Extract *LPA*-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
-2. Call KIV-2 VNTR variation from BAM/CRAM files
-3. Combine non-repetitive with repetitive region
-4. Estimate per-sample KIV-2 copy number
-5. Run combined GWAS for Lp(a) trait
-6. Fine-map association signals using SuSiE
-7. Extract dosages for credible-set variants
-
 
 ## Step 1 - Extract *LPA*-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
 
