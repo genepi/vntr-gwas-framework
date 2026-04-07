@@ -12,7 +12,7 @@ This repository contains three components:
 
 | Component | Location | Description |
 |---|---|---|
-| **Pipeline scripts** | [`scripts/`](scripts/) | Nextflow/shell scripts to run the full analysis on UKB RAP |
+| **Pipeline steps** | [`scripts/`](scripts/) | Nextflow/shell scripts to run the full analysis on UKB RAP |
 | **Summary results** | [`results/`](results/) | GWAS summary statistics and LD-residual files for European, African, and Asian ancestries |
 | **Shiny app** | [`shiny_app/`](shiny_app/) | Interactive Manhattan/LD-residual explorer across ancestries |
 
@@ -42,6 +42,8 @@ This repository documents the complete computational pipeline to integrate VNTR 
 > **Data availability:** Due to UK Biobank data access restrictions, we are unable to share non-aggregated data or sample IDs. Analyses were conducted under UKB application number **62905**. Please apply for data access directly through the [UK Biobank](https://www.ukbiobank.ac.uk/).
 
 If you encounter any issues running the pipeline, please [open a GitHub issue](../../issues). For other enquiries, contact [Sebastian Schönherr](https://genepi.i-med.ac.at/team/schoenherr-sebastian/).
+
+## Pipeline Steps
 
 The pipeline consists of the following steps:
 
