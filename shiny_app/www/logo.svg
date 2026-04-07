@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 65" width="310" height="65">
+
+  <!-- ══ Text: left ══ -->
+  <text x="8" y="36" font-family="Helvetica Neue, Helvetica, sans-serif"
+        font-size="20" font-weight="800" fill="#2c3e50" letter-spacing="1">VNTR</text>
+  <text x="8" y="52" font-family="Helvetica Neue, Helvetica, sans-serif"
+        font-size="10" font-weight="300" fill="#2980b9" letter-spacing="0.5">LD Explorer</text>
+
+  <!-- ══ Divider ══ -->
+  <line x1="72" y1="10" x2="72" y2="58" stroke="#bdc3c7" stroke-width="1"/>
+
+  <!-- ══ Gene track backbone: right ══ -->
+  <!-- non-rep left -->
+  <rect x="80"  y="36" width="36" height="8" rx="2" fill="#2980b9" opacity="0.8"/>
+  <!-- VNTR -->
+  <rect x="116" y="30" width="52" height="20" rx="3" fill="#aed6f1" stroke="#2980b9" stroke-width="2"/>
+  <!-- repeat ticks -->
+  <line x1="124" y1="31" x2="124" y2="49" stroke="#2980b9" stroke-width="1" opacity="0.4"/>
+  <line x1="131" y1="31" x2="131" y2="49" stroke="#2980b9" stroke-width="1" opacity="0.4"/>
+  <line x1="138" y1="31" x2="138" y2="49" stroke="#2980b9" stroke-width="1" opacity="0.4"/>
+  <line x1="145" y1="31" x2="145" y2="49" stroke="#2980b9" stroke-width="1" opacity="0.4"/>
+  <line x1="152" y1="31" x2="152" y2="49" stroke="#2980b9" stroke-width="1" opacity="0.4"/>
+  <line x1="159" y1="31" x2="159" y2="49" stroke="#2980b9" stroke-width="1" opacity="0.4"/>
+  <!-- VNTR label -->
+  <text x="142" y="58" font-family="Helvetica Neue, Helvetica, sans-serif"
+        font-size="7" font-weight="700" fill="#2980b9" text-anchor="middle" letter-spacing="0.5">VNTR</text>
+  <!-- non-rep right -->
+  <rect x="168" y="36" width="36" height="8" rx="2" fill="#2980b9" opacity="0.8"/>
+
+  <!-- ══ SNP markers — non-rep left ══ -->
+  <line x1="88"  y1="36" x2="88"  y2="28" stroke="#2980b9" stroke-width="1.2"/>
+  <circle cx="88"  cy="26" r="3" fill="#2980b9"/>
+  <line x1="100" y1="36" x2="100" y2="24" stroke="#2980b9" stroke-width="1.2"/>
+  <circle cx="100" cy="22" r="3" fill="#2980b9"/>
+  <line x1="110" y1="36" x2="110" y2="28" stroke="#2980b9" stroke-width="1.2"/>
+  <circle cx="110" cy="26" r="3" fill="#2980b9"/>
+
+  <!-- ══ SNP markers — inside VNTR ══ -->
+  <line x1="131" y1="30" x2="131" y2="22" stroke="#2980b9" stroke-width="1.2"/>
+  <circle cx="131" cy="20" r="3" fill="#2980b9"/>
+  <line x1="145" y1="30" x2="145" y2="24" stroke="#2980b9" stroke-width="1.2"/>
+  <circle cx="145" cy="22" r="3" fill="#2980b9"/>
+  <line x1="159" y1="30" x2="159" y2="22" stroke="#2980b9" stroke-width="1.2"/>
+  <circle cx="159" cy="20" r="3" fill="#2980b9"/>
+
+  <!-- ══ SNP markers — non-rep right ══ -->
+  <line x1="178" y1="36" x2="178" y2="28" stroke="#2980b9" stroke-width="1.2"/>
+  <circle cx="178" cy="26" r="3" fill="#2980b9"/>
+  <line x1="190" y1="36" x2="190" y2="22" stroke="#2980b9" stroke-width="1.2"/>
+  <circle cx="190" cy="20" r="3" fill="#2980b9"/>
+  <line x1="200" y1="36" x2="200" y2="28" stroke="#2980b9" stroke-width="1.2"/>
+  <circle cx="200" cy="26" r="3" fill="#2980b9"/>
+
+  <!-- ══ LD arcs ══ -->
+  <!-- outside–inside -->
+  <path d="M100,22 Q116,4 131,20" stroke="#e74c3c" stroke-width="1.5" fill="none" opacity="0.7" stroke-dasharray="3,2"/>
+  <path d="M110,26 Q134,6 159,20" stroke="#e74c3c" stroke-width="1.5" fill="none" opacity="0.5" stroke-dasharray="3,2"/>
+  <!-- inside–outside -->
+  <path d="M145,22 Q162,5 190,20" stroke="#e74c3c" stroke-width="1.5" fill="none" opacity="0.7" stroke-dasharray="3,2"/>
+  <path d="M159,20 Q178,6 200,26" stroke="#e74c3c" stroke-width="1.5" fill="none" opacity="0.5" stroke-dasharray="3,2"/>
+  <!-- inside–inside -->
+  <path d="M131,20 Q145,12 159,20" stroke="#2980b9" stroke-width="1.2" fill="none" opacity="0.6"/>
+
+</svg>

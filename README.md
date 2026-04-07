@@ -1,9 +1,22 @@
-# Computational Pipeline for Resolving the Ancestry-Specific Genetic Architecture of *LPA*
+# Ancestry-Specific Genetic Architecture of *LPA*: Pipeline, Results, and Interactive Explorer
 
 [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A524.x-brightgreen)](https://nextflow.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform: DNAnexus RAP](https://img.shields.io/badge/platform-DNAnexus%20RAP-blue)](https://ukbiobank.dnanexus.com/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
+
+---
+## What's in this repository
+
+This repository contains three components:
+
+| Component | Location | Description |
+|---|---|---|
+| **Pipeline scripts** | [`scripts/`](scripts/) | Nextflow/shell scripts to run the full analysis on UKB RAP |
+| **Summary results** | [`results/`](results/) | GWAS summary statistics and LD-residual files for European, African, and Asian ancestries |
+| **Shiny app** | [`shiny_app/`](shiny_app/) | Interactive Manhattan/LD-residual explorer across ancestries |
+
+To launch the Shiny app locally, open `shiny_app/app.R` in RStudio and click *Run App*, or run `shiny::runApp("shiny_app")` from the repository root.
 
 ---
 ## Funding
