@@ -45,6 +45,77 @@ If you encounter any issues running the pipeline, please [open a GitHub issue](.
 
 ## Pipeline Steps
 
+### Pipeline Overview
+
+
+```mermaid
+flowchart TD
+    A[(UKB WES CRAMs)] --> S1
+
+    S1["`**Step 1**
+Extract LPA-region reads
+extract_lpa.sh`"]
+    S1 --> BAM[(LPA BAMs)]
+
+    BAM --> S2
+
+    S2["`**Step 2**
+Call KIV-2 VNTR variation
+vntr-calling-nf`"]
+    S2 --> VNTR[(VNTR calls
+ukb_rap.txt.gz)]
+    S2 --> RBAM[(Realigned BAMs)]
+
+    T[(TOPMed imputed data
+chr6 BGEN)] --> S3
+    VNTR --> S3
+    S3["`**Step 3**
+Convert VNTR → VCF
+Fix dosage fields
+Merge with imputed SNPs`"]
+    S3 --> MVCF[(Merged VCF
+rep + non-rep)]
+
+    BAM --> S4
+    RBAM --> S4
+    S4["`**Step 4**
+CNE
+KIV-2 copy number + phenotype`"]
+    S4 --> PHENO[(Phenotype file
++ sample list)]
+
+    MVCF --> FILTER["`bcftools subset
+end of Step 4`"]
+    PHENO --> FILTER
+    FILTER --> AFVCF[(Ancestry-filtered VCF)]
+
+    AFVCF --> S5
+    PHENO --> S5
+    G[(Array genotypes
+PLINK format)] --> S5
+    S5["`**Step 5**
+GWAS
+nf-gwas / regenie`"]
+    S5 --> GWAS[(GWAS results)]
+
+    AFVCF --> S6
+    GWAS --> S6
+    S6["`**Step 6**
+Fine-mapping
+SuSiE`"]
+    S6 --> CS[(Credible sets)]
+    S6 --> FVCF[(Filtered VCF
+credible-set variants only)]
+
+    FVCF --> S7
+    CS --> S7
+    S7["`**Step 7**
+Extract dosages
+for credible-set variants`"]
+    S7 --> OUT[(Final dosage matrix)]
+```
+
+### Individual Steps 
 The pipeline consists of the following steps:
 
 1. Extract *LPA*-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
@@ -284,74 +355,7 @@ cp output/afr_credible_sets_pos.txt input/
 
 ---
 
-## Pipeline Overview
 
-```mermaid
-flowchart TD
-    A[(UKB WES CRAMs)] --> S1
-
-    S1["`**Step 1**
-Extract LPA-region reads
-extract_lpa.sh`"]
-    S1 --> BAM[(LPA BAMs)]
-
-    BAM --> S2
-
-    S2["`**Step 2**
-Call KIV-2 VNTR variation
-vntr-calling-nf`"]
-    S2 --> VNTR[(VNTR calls
-ukb_rap.txt.gz)]
-    S2 --> RBAM[(Realigned BAMs)]
-
-    T[(TOPMed imputed data
-chr6 BGEN)] --> S3
-    VNTR --> S3
-    S3["`**Step 3**
-Convert VNTR → VCF
-Fix dosage fields
-Merge with imputed SNPs`"]
-    S3 --> MVCF[(Merged VCF
-rep + non-rep)]
-
-    BAM --> S4
-    RBAM --> S4
-    S4["`**Step 4**
-CNE
-KIV-2 copy number + phenotype`"]
-    S4 --> PHENO[(Phenotype file
-+ sample list)]
-
-    MVCF --> FILTER["`bcftools subset
-end of Step 4`"]
-    PHENO --> FILTER
-    FILTER --> AFVCF[(Ancestry-filtered VCF)]
-
-    AFVCF --> S5
-    PHENO --> S5
-    G[(Array genotypes
-PLINK format)] --> S5
-    S5["`**Step 5**
-GWAS
-nf-gwas / regenie`"]
-    S5 --> GWAS[(GWAS results)]
-
-    AFVCF --> S6
-    GWAS --> S6
-    S6["`**Step 6**
-Fine-mapping
-SuSiE`"]
-    S6 --> CS[(Credible sets)]
-    S6 --> FVCF[(Filtered VCF
-credible-set variants only)]
-
-    FVCF --> S7
-    CS --> S7
-    S7["`**Step 7**
-Extract dosages
-for credible-set variants`"]
-    S7 --> OUT[(Final dosage matrix)]
-```
 
 ## Software Versions
 
