@@ -22,7 +22,7 @@ To launch the Shiny app locally, open `shiny_app/app.R` in RStudio and click *Ru
 
 ## Interactive Explorer
 
-🔗 **[Launch the VNTR–GWAS Shiny App](https://github.com/genepi/vntr-gwas-framework)**
+🔗 **[Launch the LD Explorer](https://genepi.shinyapps.io/ld-explorer/)**
 
 ---
 ## Funding
