@@ -19,6 +19,12 @@ This repository contains three components:
 To launch the Shiny app locally, open `shiny_app/app.R` in RStudio and click *Run App*, or run `shiny::runApp("shiny_app")` from the repository root.
 
 ---
+
+## Interactive Explorer
+
+🔗 **[Launch the VNTR–GWAS Shiny App](https://github.com/genepi/vntr-gwas-framework)**
+
+---
 ## Funding
 
 This work is supported by the Austrian Science Fund (FWF) under grant [PAT3357425 — Intra-Repeat VNTR Analysis and Risk Prediction](https://www.fwf.ac.at/forschungsradar/10.55776/PAT3357425) (PI: Sebastian Schönherr, Medical University Innsbruck).
