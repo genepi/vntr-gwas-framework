@@ -1,4 +1,4 @@
-# Integrating variable number tandem repeats into multi-ancestry association studies and fine-mapping for functional variant detection: Pipeline, Results, and Interactive Explorer
+# Pipeline, Results, and Interactive Explorer for VNTR integration into multi-ancestry association studies and fine-mapping
 
 [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A524.x-brightgreen)](https://nextflow.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
