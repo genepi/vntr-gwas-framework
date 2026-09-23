@@ -59,9 +59,9 @@ The VNTR calls are written to `output/1000g_eur/variant_calling/1000g_eur.txt.gz
 
 ## Step 3 - Combine non-repetitive with repetitive region
 
-The VNTR calls are merged with variant calls for the non-repetitive *LPA* region. For 1000 Genomes, these come from the [high-coverage phased panel](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38). The *LPA*-region VCF for all ten samples is already provided in [`input/vcf/`](input/vcf/). It was extracted as follows:
+The VNTR calls are merged with variant calls for the non-repetitive *LPA* region. For 1000 Genomes, these come from the [high-coverage phased panel](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38), which was called from the same 30x CRAMs used in Step 1. The *LPA*-region VCF for all ten samples is already provided in [`input/vcf/`](input/vcf/). It was extracted as follows:
 ```
-bcftools view -r chr6:160530484-160665259 -c 1 \
+bcftools view -r chr6:160530485-160665259 -c 1 \
   -s HG00265,HG00766,HG01685,HG02697,HG03391,HG03673,HG04186,NA18992,NA19087,NA20772 \
   -Oz -o input/vcf/lpa_1000g.vcf.gz \
   http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20220422_3202_phased_SNV_INDEL_SV/1kGP_high_coverage_Illumina.chr6.filtered.SNV_INDEL_SV_phased_panel.vcf.gz
