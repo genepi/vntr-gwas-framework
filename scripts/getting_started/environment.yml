@@ -1,0 +1,19 @@
+name: vntr-getting-started
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    # Step 1
+    - samtools=1.21
+    # Step 2
+    - nextflow=24.10.1
+    - wget
+    # Step 3
+    - bcftools=1.21
+    - gzip
+    - unzip
+    # Step 4
+    - bedtools
+    - r-base
+    - r-dplyr
+    - r-tidyr
