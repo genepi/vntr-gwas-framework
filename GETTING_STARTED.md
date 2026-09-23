@@ -1,6 +1,6 @@
 # Getting Started with 1000 Genomes Test Data
 
-UK Biobank data cannot be shared, so this guide runs the pipeline on ten publicly available exome samples from the [1000 Genomes Project](https://www.internationalgenome.org/) phase 3 (GRCh38).
+UK Biobank data cannot be shared, so this guide runs the pipeline on ten publicly available samples from the [1000 Genomes Project](https://www.internationalgenome.org/) phase 3, using the [30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38).
 
 The guide covers the data preparation part of the pipeline (Steps 1–4). It produces the two inputs needed for GWAS and fine-mapping: a merged VCF with repetitive and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers.
 
@@ -22,11 +22,12 @@ conda activate vntr-getting-started
 
 ## Step 1 - Extract *LPA*-region reads
 
-The *LPA*-region BAMs for all ten samples are already provided in [`input/bams/`](input/bams/). They were extracted from the 1000 Genomes exome CRAMs as follows (example for HG00265):
+The *LPA*-region BAMs for all ten samples are already provided in [`input/bams/`](input/bams/). They were extracted from the 30x CRAMs as follows (example for HG00265; the CRAM location of each sample is listed in the [sequence index](http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/1000G_2504_high_coverage.sequence.index)):
 ```
-samtools view -b -o input/bams/HG00265.bam \
-  http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/data/GBR/HG00265/exome_alignment/HG00265.alt_bwamem_GRCh38DH.20150826.GBR.exome.cram \
-  chr6:160530484-160665259
+samtools view -b -o input/bams/HG00265.final.cram.LPA.bam \
+  -T http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa \
+  http://ftp.sra.ebi.ac.uk/vol1/run/ERR324/ERR3240222/HG00265.final.cram \
+  chr6:160530485-160665259
 ```
 
 ## Step 2 - Call KIV-2 VNTR variation
@@ -35,25 +36,26 @@ KIV-2 variants are called with [vntr-calling-nf](https://github.com/genepi/vntr-
 
 Download the single-repeat KIV-2 reference:
 ```
-wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/v0.4.9/reference-data/kiv2.fasta
-wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/v0.4.9/reference-data/kiv2.fasta.fai
+wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/v0.4.10/reference-data/kiv2.fasta
+wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/v0.4.10/reference-data/kiv2.fasta.fai
 ```
 
 Create `step2.config`:
 ```
 params.project="1000g_eur"
-params.input="input/bams/{HG00265,HG01685,NA20772}.bam"
+params.input="input/bams/{HG00265,HG01685,NA20772}.final.cram.LPA.bam"
 params.reference="kiv2.fasta"
 params.contig="KIV2_6"
 params.build="hg38"
+params.publish_realigned=true
 ```
 
 Run the pipeline:
 ```
-nextflow run genepi/vntr-calling-nf -r v0.4.9 -c step2.config -profile docker
+nextflow run genepi/vntr-calling-nf -r v0.4.10 -c step2.config -profile docker
 ```
 
-The VNTR calls are written to `output/1000g_eur/variant_calling/1000g_eur.txt.gz`. The realigned BAMs needed for Step 4 are already provided in [`input/step2-output/`](input/step2-output/), so you can compare your results with them.
+The VNTR calls are written to `output/1000g_eur/variant_calling/1000g_eur.txt.gz` and the realigned BAMs needed for Step 4 to `output/1000g_eur/realign_fastq/`. Our realigned BAMs are provided in [`input/step2-output/`](input/step2-output/), so you can compare your results with them.
 
 ## Step 3 - Combine non-repetitive with repetitive region
 
@@ -77,7 +79,7 @@ unzip mutserve.zip
 
 # Use sample IDs as names and keep PASS variants only
 gzip -dc ../output/1000g_eur/variant_calling/1000g_eur.txt.gz \
-  | sed -E 's/\.extracted[.a-z0-9]*\.realigned\.bam//g' \
+  | sed -E 's/\.[.A-Za-z0-9]*realigned\.bam//g' \
   | awk -F'\t' 'NR==1 || $2=="PASS"' > vntr_filtered.txt
 
 # Rename the KIV-2 contig to 6
@@ -118,7 +120,7 @@ Go back to the repository root and prepare the folders expected by the script:
 cd ..
 mkdir step4 && cd step4
 cp -r ../input/bams CRAMS
-cp -r ../input/step2-output realigned
+cp -r ../output/1000g_eur/realign_fastq realigned
 cp -r ../scripts/step4/input input
 bash ../scripts/step4/calc_estimates.sh
 ```

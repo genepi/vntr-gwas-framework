@@ -156,7 +156,7 @@ VNTR variation is resolved using a previously [published Nextflow pipeline](http
 | | Files |
 |---|---|
 | **Input** | *LPA* BAMs from Step 1 |
-| **Output** | VNTR calls (`ukb_rap.txt.gz`); realigned BAMs (`realigned/`) needed for Step 4 |
+| **Output** | VNTR calls (`ukb_rap.txt.gz`); realigned BAMs (`realign_fastq/`) needed for Step 4 |
 | **Script** | `nextflow run genepi/vntr-calling-nf -c ukb.config` ([vntr-calling-nf](https://github.com/genepi/vntr-calling-nf)) |
 
 ### 2.1 Set up the pipeline
@@ -173,21 +173,17 @@ params.input="lpa_bams/*bam"
 params.reference="reference-data/kiv2.fasta"
 params.contig="KIV2_6"
 params.region="ROI-8.bed"
+params.publish_realigned=true
 ```
 
-### 2.3 Enable realigned BAM output
-Required for Step 4. Enable output of realigned BAM data by adding the following to `local/realign_fastq.nf`:
+`params.publish_realigned=true` writes the realigned BAMs needed for Step 4 to `output/<project>/realign_fastq/`.
 
+### 2.3 Run the pipeline
 ```
-publishDir "${params.outdir}/realigned", mode: "copy"
-```
-
-### 2.4 Run the pipeline
-```
-nextflow run genepi/vntr-calling-nf -r <version> -c ukb.config --profile docker
+nextflow run genepi/vntr-calling-nf -r <version> -c ukb.config -profile docker
 ```
 
-> **Note:** Pin `-r` to a specific release tag (current: `-r v0.4.9`) to ensure reproducibility. Check available releases at [github.com/genepi/vntr-calling-nf](https://github.com/genepi/vntr-calling-nf/releases).
+> **Note:** Pin `-r` to a specific release tag (current: `-r v0.4.10`) to ensure reproducibility. Check available releases at [github.com/genepi/vntr-calling-nf](https://github.com/genepi/vntr-calling-nf/releases).
 
 ## Step 3 - Combine non-repetitive with repetitive region
 The VNTR calls from Step 2 are converted to VCF format and merged with TOPMed imputed SNPs covering the non-repetitive *LPA* locus. Dosage (DS) fields are harmonised across both sources to produce a single analysis-ready VCF.
@@ -367,7 +363,7 @@ cp output/afr_credible_sets_pos.txt input/
 | Tool | Version | Used in |
 |---|---|---|
 | Nextflow | ≥24.x | Steps 2, 5 |
-| [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) | 0.4.9 | Step 2 |
+| [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) | 0.4.10 | Step 2 |
 | [nf-gwas](https://github.com/genepi/nf-gwas) | 1.0.11 | Step 5 |
 | mutserve | 2.0.3 | Step 3 |
 | qctool | — | Step 3 |
