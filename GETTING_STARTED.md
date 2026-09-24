@@ -5,22 +5,7 @@
 > - 🔒 **Pipeline visibility:** nf-VNTRepeat-count is a private repository (`salvidm`). Transfer it to `genepi`, make it public, create a release and replace the local clone in [Step 4](#step-4---estimate-kiv-2-copy-number) with `nextflow run genepi/nf-VNTRepeat-count -r <release> ...`.
 > - 📍 **Coordinates:** provide hg38 coordinates for the KIV-2 exon projection in `scripts/step3/merge_vntr_nonrep.sh` (current values appear to be hg19) and update [Step 3.3](#33-fix-dosages-and-merge-both-regions).
 
-The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is therefore missing from GWAS. This guide shows how our framework turns short-read sequencing data into GWAS-ready KIV-2 variants and copy numbers.
-
-> [!TIP]
-> 🧬 **Not limited to *LPA*: the framework applies to other coding VNTRs.** Only the following inputs are needed:
->
-> | Step | Input for a new VNTR | Parameter |
-> |---|---|---|
-> | 2 | Reference sequence of a single repeat unit and BED file of the VNTR region | `params.reference`, `params.region` (vntr-calling-nf) |
-> | 3 | Positions of the repeat exons within the repeat unit and their target coordinates on the chromosome | `merge_vntr_nonrep.sh` |
-> | 4 | BED files of the repetitive exons and of non-repetitive exons of the same gene | `vntr_exons_coord`, `exons_coord` (nf-VNTRepeat-count) |
-
-UK Biobank data cannot be shared, so the guide runs the pipeline on ten publicly available samples from the [1000 Genomes Project](https://www.internationalgenome.org/) phase 3, using the [30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38).
-
-The guide covers the data preparation part of the pipeline (Steps 1–4). It produces the two inputs needed for GWAS and fine-mapping: a merged VCF with repetitive and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers.
-
-All steps are reproducible: Steps 2 and 4 run as fixed releases of Nextflow pipelines, which run all tools in Docker containers, and Steps 1 and 3 use tools installed from a single conda environment.
+The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is therefore missing from GWAS. This guide turns short-read sequencing data into the two inputs needed for GWAS and fine-mapping: a merged VCF with KIV-2 and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers. As UK Biobank data cannot be shared, it uses ten public samples from the [1000 Genomes 30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38). The framework can also be [applied to other VNTRs](#applying-the-framework-to-other-vntrs).
 
 | Step | Description | Runs on test data | Reproducibility |
 |---|---|---|---|
@@ -158,6 +143,16 @@ The remaining steps need Lp(a) measurements and a large cohort, so they cannot b
 | [5 - GWAS](README.md#step-5---run-combined-gwas-for-lpa-trait) | Genome-wide association for Lp(a) with regenie via [nf-gwas](https://github.com/genepi/nf-gwas), with KIV-2 copy number as covariate | Merged VCF (Step 3), copy numbers (Step 4) |
 | [6 - Fine-mapping](README.md#step-6---fine-map-association-signals-using-susie) | SuSiE fine-mapping of the *LPA* locus using an LD matrix from the merged VCF | Merged VCF (Step 3), GWAS results (Step 5) |
 | [7 - Dosages](README.md#step-7---extract-dosages-for-credible-set-variants) | Per-sample dosages of credible-set variants for downstream analyses | Fine-mapping results (Step 6) |
+
+## Applying the framework to other VNTRs
+
+The framework is not limited to *LPA* and can be applied to other coding VNTRs by providing the following inputs:
+
+| Step | Input for a new VNTR | Parameter |
+|---|---|---|
+| 2 | Reference sequence of a single repeat unit and BED file of the VNTR region | `params.reference`, `params.region` (vntr-calling-nf) |
+| 3 | Positions of the repeat exons within the repeat unit and their target coordinates on the chromosome | `merge_vntr_nonrep.sh` |
+| 4 | BED files of the repetitive exons and of non-repetitive exons of the same gene | `vntr_exons_coord`, `exons_coord` (nf-VNTRepeat-count) |
 
 ## Explore the results
 
