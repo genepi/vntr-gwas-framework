@@ -12,8 +12,3 @@ dependencies:
     - bcftools=1.21
     - gzip
     - unzip
-    # Step 4
-    - bedtools
-    - r-base
-    - r-dplyr
-    - r-tidyr

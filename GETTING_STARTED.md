@@ -1,12 +1,13 @@
 # Getting Started with 1000 Genomes Test Data
 
-<!--
-TODO (Silvia) before sharing with reviewers:
-- Transfer nf-VNTRepeat-count from salvidm to genepi, create a release and update Step 4.
-- Provide hg38 coordinates for the KIV-2 exon projection in scripts/step3/merge_vntr_nonrep.sh (current values appear to be hg19) and update Step 3.3.
--->
+> [!WARNING]
+> 🚧 **Open TODOs (Silvia) before sharing with reviewers**
+> - 🔒 **Pipeline visibility:** nf-VNTRepeat-count is a private repository (`salvidm`). Transfer it to `genepi`, make it public, create a release and update [Step 4](#step-4---estimate-kiv-2-copy-number).
+> - 📍 **Coordinates:** provide hg38 coordinates for the KIV-2 exon projection in `scripts/step3/merge_vntr_nonrep.sh` (current values appear to be hg19) and update [Step 3.3](#33-fix-dosages-and-merge-both-regions).
 
-UK Biobank data cannot be shared, so this guide runs the pipeline on ten publicly available samples from the [1000 Genomes Project](https://www.internationalgenome.org/) phase 3, using the [30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38).
+The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is therefore missing from GWAS. This guide shows how our framework turns short-read sequencing data into GWAS-ready KIV-2 variants and copy numbers.
+
+UK Biobank data cannot be shared, so the guide runs the pipeline on ten publicly available samples from the [1000 Genomes Project](https://www.internationalgenome.org/) phase 3, using the [30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38).
 
 The guide covers the data preparation part of the pipeline (Steps 1–4). It produces the two inputs needed for GWAS and fine-mapping: a merged VCF with repetitive and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers.
 
@@ -18,7 +19,7 @@ All steps are reproducible: Steps 2 and 4 run as fixed releases of Nextflow pipe
 | 2 | Call KIV-2 VNTR variation | ✓ (output provided) | Nextflow |
 | 3 | Combine non-repetitive with repetitive region | ✓ | conda |
 | 4 | Estimate KIV-2 copy number | ✓ | Nextflow |
-| 5–7 | GWAS, fine-mapping, dosage extraction | UK Biobank only | |
+| 5–7 | GWAS, fine-mapping, dosage extraction | Requires a cohort with Lp(a) measurements (e.g. UK Biobank) | |
 
 ## Setup
 
@@ -104,21 +105,34 @@ bcftools annotate --rename-chrs chr_names.txt -h ds.hdr -Oz -o region_chr6.vcf.g
 ```
 
 ### 3.3 Fix dosages and merge both regions
-<!-- TODO (Silvia): provide hg38 coordinates for the KIV-2 exon projection in merge_vntr_nonrep.sh (current values appear to be hg19) and update the text below. -->
+> [!WARNING]
+> 📍 **TODO (Silvia):** provide hg38 coordinates for the KIV-2 exon projection in `merge_vntr_nonrep.sh` (current values appear to be hg19) and update the text below.
+
 The KIV-2 variants are called on a single-repeat reference, where their positions have no meaning on chromosome 6. `merge_vntr_nonrep.sh` projects the variants of both KIV-2 exons onto chromosome 6 coordinates, taking into account that *LPA* lies on the reverse strand. This places repetitive and non-repetitive variants in one VCF that standard GWAS and fine-mapping tools can use directly.
+
+The three scripts are run in this order:
+1. `gt_to_dosage.sh` fills the DS field of the non-repetitive variants from their genotypes (0, 1 or 2).
+2. `merge_vntr_nonrep.sh` projects the KIV-2 variants onto chromosome 6 and merges them with the non-repetitive variants.
+3. `finalize_dosage.sh` sets the DS field of the KIV-2 variants from their variant level (see below) and removes the genotypes, so that all variants are analysed as dosages.
 ```
 sh ../scripts/step3/gt_to_dosage.sh
-sh ../scripts/step3/merge_vntr_nonrep.sh vntr_filtered.vcf.gz
-sh ../scripts/step3/finalize_dosage.sh
+sh ../scripts/step3/merge_vntr_nonrep.sh vntr_filtered.vcf.gz 1000g
+sh ../scripts/step3/finalize_dosage.sh 1000g
 ```
 
-The merged VCF is written to `ukb_combined_final_sorted_with_DS_noGT.vcf.gz`. It contains the three European samples.
+The merged VCF is written to `1000g_combined_final_sorted_with_DS_noGT.vcf.gz`. It contains the three European samples, and all variants are encoded as dosages (DS):
+- **Non-repetitive variants:** genotype dosage (0, 1 or 2).
+- **KIV-2 variants:** 0 for non-carriers, and 1 + the fraction of KIV-2 repeats carrying the variant for carriers (between 1 and 2). As KIV-2 variants are present in only some of the repeats, this captures both carrier status and the intra-repeat variant level.
+
+Your result should match [`input/expected/1000g_combined_final_sorted_with_DS_noGT.vcf.gz`](input/expected/).
 
 ## Step 4 - Estimate KIV-2 copy number
 
 KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/salvidm/nf-VNTRepeat-count): mean coverage of the KIV-2 exons in the realigned BAMs (Step 2) divided by the mean coverage of the unique *LPA* exons in the original BAMs (Step 1).
 
-<!-- TODO (Silvia): transfer nf-VNTRepeat-count to genepi, create a release and replace the local clone below with: nextflow run genepi/nf-VNTRepeat-count -r <release> -profile docker ... -->
+> [!WARNING]
+> 🔒 **TODO (Silvia):** the repository is private. Transfer nf-VNTRepeat-count to `genepi`, make it public, create a release and replace the local clone below with `nextflow run genepi/nf-VNTRepeat-count -r <release> -profile docker ...`
+
 ```
 git clone git@github.com:salvidm/nf-VNTRepeat-count.git
 git -C nf-VNTRepeat-count checkout 8af63ab
@@ -130,7 +144,7 @@ NXF_VER=25.10.0 nextflow run nf-VNTRepeat-count/main.nf -profile docker \
 
 This pipeline requires Nextflow 25.10, which is selected with `NXF_VER` and downloaded automatically on first use.
 
-The KIV-2 copy number (`cne_kiv2`) of the three European samples is written to `results/formula/estimates.tsv`, the underlying coverage values to `results/coverage/coverage_summary.tsv`.
+The KIV-2 copy number (`cne_kiv2`) of the three European samples is written to `results/formula/estimates.tsv`, the underlying coverage values to `results/coverage/coverage_summary.tsv`. Your result should match [`input/expected/estimates.tsv`](input/expected/).
 
 ## Steps 5–7 - Association and fine-mapping
 

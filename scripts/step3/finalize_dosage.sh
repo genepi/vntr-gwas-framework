@@ -1,6 +1,8 @@
-file_no_ds="ukb_combined_final_sorted.vcf.gz"
-file_ds="ukb_combined_final_sorted_with_DS.vcf.gz"
-final="ukb_combined_final_sorted_with_DS_noGT.vcf.gz"
+# Prefix used in merge_vntr_nonrep.sh (final output: <prefix>_combined_final_sorted_with_DS_noGT.vcf.gz)
+prefix="${1:-ukb}"
+file_no_ds="${prefix}_combined_final_sorted.vcf.gz"
+file_ds="${prefix}_combined_final_sorted_with_DS.vcf.gz"
+final="${prefix}_combined_final_sorted_with_DS_noGT.vcf.gz"
 bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' $file_no_ds > variants.tsv
 bcftools query -f '[%DS\t]\n' $file_no_ds > ds_only.tsv
 bcftools query -f '[%AF\t]\n' $file_no_ds > af_only.tsv
@@ -8,6 +10,11 @@ wc -l variants.tsv
 wc -l ds_only.tsv
 wc -l af_only.tsv
 paste variants.tsv ds_only.tsv af_only.tsv > combined.tsv
+
+# DS per sample:
+# - non-repetitive variants: existing DS (genotype dosage 0-2)
+# - KIV-2 variants, carriers: 1 + AF, where AF is the fraction of KIV-2 repeats carrying the variant (range 1-2)
+# - KIV-2 variants, non-carriers: 0 (AF was set to "." for 0/0 in merge_vntr_nonrep.sh)
 
 cat combined.tsv | awk '{
     printf "%s\t%s\t%s\t%s", $1, $2, $3, $4;
@@ -29,7 +36,7 @@ cat combined.tsv | awk '{
 
 bgzip -c final.tsv > final.tsv.gz
 tabix -s 1 -b 2 -e 2 final.tsv.gz
-echo '##FORMAT=<ID=DS,Number=1,Type=Float,Description="DS: overwritten from DS or AF+1">' > ds_header.txt
+echo '##FORMAT=<ID=DS,Number=1,Type=Float,Description="Dosage: genotype dosage (0-2) for non-repetitive variants; 1 + fraction of KIV-2 repeats carrying the variant for KIV-2 carriers; 0 for non-carriers">' > ds_header.txt
 
 bcftools annotate -a final.tsv.gz   -h ds_header.txt   -c CHROM,POS,REF,ALT,FORMAT/DS   -Oz -o $file_ds $file_no_ds
 tabix $file_ds

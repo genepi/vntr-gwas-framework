@@ -1,32 +1,34 @@
 set -e
 # VNTR calls converted to VCF (Step 3.1)
 vntr_vcf="${1:-ukb_rap_renamed_filtered.vcf.gz}"
+# Prefix for all output files (final output: <prefix>_combined_final_sorted.vcf.gz)
+prefix="${2:-ukb}"
 echo "get lpa non-rep region"
 #bcftools filter /mnt/genepi-biobank/data/gwas/ukbb/imputed/vcfs/ukb_imp_chr6_v3.vcf.gz  --regions 6:160952514-161033863,6:161038409-161085307 -Ov -o ukb_lpa_nonrep.vcf.gz
 # THIS FILE HAS BEEN CREATED BY SETTING THE GT value to DS for GENOTYPED ONLY VARIANTS 
-cp region_chr6_fixed.vcf.gz ukb_lpa_nonrep.vcf.gz
-tabix ukb_lpa_nonrep.vcf.gz
+cp region_chr6_fixed.vcf.gz ${prefix}_lpa_nonrep.vcf.gz
+tabix ${prefix}_lpa_nonrep.vcf.gz
 echo "extract exome regions"
-bcftools norm -m -any "$vntr_vcf"  -o 2022-10-21-ukbb-kiv2-annoated.renamed.passed.norm.vcf.gz -Oz
-tabix -p vcf -f 2022-10-21-ukbb-kiv2-annoated.renamed.passed.norm.vcf.gz
-bcftools filter 2022-10-21-ukbb-kiv2-annoated.renamed.passed.norm.vcf.gz --regions 6:481-840 -Ov -o ukb_kiv2.6_exon1.vcf.gz
-bcftools filter 2022-10-21-ukbb-kiv2-annoated.renamed.passed.norm.vcf.gz --regions 6:4644-5025 -Ov -o ukb_kiv2.6_exon2.vcf.gz
+bcftools norm -m -any "$vntr_vcf"  -o ${prefix}_kiv2.norm.vcf.gz -Oz
+tabix -p vcf -f ${prefix}_kiv2.norm.vcf.gz
+bcftools filter ${prefix}_kiv2.norm.vcf.gz --regions 6:481-840 -Ov -o ${prefix}_kiv2.6_exon1.vcf.gz
+bcftools filter ${prefix}_kiv2.norm.vcf.gz --regions 6:4644-5025 -Ov -o ${prefix}_kiv2.6_exon2.vcf.gz
 
 echo "set rsID with chrom + pos" 
-bcftools annotate --set-id +'%CHROM\:%POS\:%REF\:%ALT' ukb_kiv2.6_exon1.vcf.gz -Oz -o ukb_kiv2.6_exon1.ids.vcf.gz
-bcftools annotate --set-id +'%CHROM\:%POS\:%REF\:%ALT' ukb_kiv2.6_exon2.vcf.gz -Oz -o ukb_kiv2.6_exon2.ids.vcf.gz
+bcftools annotate --set-id +'%CHROM\:%POS\:%REF\:%ALT' ${prefix}_kiv2.6_exon1.vcf.gz -Oz -o ${prefix}_kiv2.6_exon1.ids.vcf.gz
+bcftools annotate --set-id +'%CHROM\:%POS\:%REF\:%ALT' ${prefix}_kiv2.6_exon2.vcf.gz -Oz -o ${prefix}_kiv2.6_exon2.ids.vcf.gz
 
-bcftools sort -Oz -o ukb_kiv2.6_exon1.ids.sorted.vcf.gz ukb_kiv2.6_exon1.ids.vcf.gz
-bcftools sort -Oz -o ukb_kiv2.6_exon2.ids.sorted.vcf.gz ukb_kiv2.6_exon2.ids.vcf.gz
-tabix -p vcf ukb_kiv2.6_exon1.ids.sorted.vcf.gz
-tabix -p vcf ukb_kiv2.6_exon2.ids.sorted.vcf.gz
+bcftools sort -Oz -o ${prefix}_kiv2.6_exon1.ids.sorted.vcf.gz ${prefix}_kiv2.6_exon1.ids.vcf.gz
+bcftools sort -Oz -o ${prefix}_kiv2.6_exon2.ids.sorted.vcf.gz ${prefix}_kiv2.6_exon2.ids.vcf.gz
+tabix -p vcf ${prefix}_kiv2.6_exon1.ids.sorted.vcf.gz
+tabix -p vcf ${prefix}_kiv2.6_exon2.ids.sorted.vcf.gz
 
-bcftools concat -a -Oz -o ukb_kiv2.6_combined.vcf.gz \
-    ukb_kiv2.6_exon1.ids.sorted.vcf.gz \
-    ukb_kiv2.6_exon2.ids.sorted.vcf.gz
-tabix -p vcf -f ukb_kiv2.6_combined.vcf.gz
+bcftools concat -a -Oz -o ${prefix}_kiv2.6_combined.vcf.gz \
+    ${prefix}_kiv2.6_exon1.ids.sorted.vcf.gz \
+    ${prefix}_kiv2.6_exon2.ids.sorted.vcf.gz
+tabix -p vcf -f ${prefix}_kiv2.6_combined.vcf.gz
 
-zcat ukb_kiv2.6_combined.vcf.gz | \
+zcat ${prefix}_kiv2.6_combined.vcf.gz | \
 awk -F'\t' 'BEGIN{OFS="\t"}
 /^#/ {print; next}
 {
@@ -43,14 +45,14 @@ awk -F'\t' 'BEGIN{OFS="\t"}
         for(i=2;i<=length(vals);i++) $s=$s ":" vals[i]
     }
     print
-}' > ukb_kiv2.6_combined_fixed.vcf
+}' > ${prefix}_kiv2.6_combined_fixed.vcf
 
-bgzip ukb_kiv2.6_combined_fixed.vcf
-tabix -p vcf -f ukb_kiv2.6_combined_fixed.vcf.gz
+bgzip ${prefix}_kiv2.6_combined_fixed.vcf
+tabix -p vcf -f ${prefix}_kiv2.6_combined_fixed.vcf.gz
 
 # TODO (Silvia): provide hg38 coordinates for map_start/map_end below.
 # The current values (161033864-161038408) appear to be hg19, while the non-repetitive region is hg38.
-zcat ukb_kiv2.6_combined_fixed.vcf.gz | \
+zcat ${prefix}_kiv2.6_combined_fixed.vcf.gz | \
 awk 'BEGIN {
     OFS = "\t"
     # exon1 mapping
@@ -84,26 +86,26 @@ awk 'BEGIN {
     }
 
     print
-}' > ukb_kiv2.6_combined_remapped.vcf
+}' > ${prefix}_kiv2.6_combined_remapped.vcf
 
-bgzip ukb_kiv2.6_combined_remapped.vcf
+bgzip ${prefix}_kiv2.6_combined_remapped.vcf
 
-bcftools sort -Oz -o ukb_kiv2.6_combined_remapped_sorted.vcf.gz ukb_kiv2.6_combined_remapped.vcf.gz
-tabix -p vcf -f ukb_kiv2.6_combined_remapped_sorted.vcf.gz
+bcftools sort -Oz -o ${prefix}_kiv2.6_combined_remapped_sorted.vcf.gz ${prefix}_kiv2.6_combined_remapped.vcf.gz
+tabix -p vcf -f ${prefix}_kiv2.6_combined_remapped_sorted.vcf.gz
 
 echo "filter by samples"
-bcftools query -l ukb_kiv2.6_combined_remapped_sorted.vcf.gz > samples_repetitive.txt
-bcftools query -l ukb_lpa_nonrep.vcf.gz > samples_nonrepetitive.txt
+bcftools query -l ${prefix}_kiv2.6_combined_remapped_sorted.vcf.gz > samples_repetitive.txt
+bcftools query -l ${prefix}_lpa_nonrep.vcf.gz > samples_nonrepetitive.txt
 grep -Fxf samples_nonrepetitive.txt samples_repetitive.txt > common_ids.txt
-bcftools view -S common_ids.txt -Oz -o ukb_kiv2.6_combined_remapped_sorted_filtered.vcf.gz ukb_kiv2.6_combined_remapped_sorted.vcf.gz
-bcftools view -S common_ids.txt -Oz -o ukb_lpa_nonrep_filtered.vcf.gz ukb_lpa_nonrep.vcf.gz
-tabix -p vcf -f ukb_kiv2.6_combined_remapped_sorted_filtered.vcf.gz
-tabix -p vcf -f ukb_lpa_nonrep_filtered.vcf.gz
+bcftools view -S common_ids.txt -Oz -o ${prefix}_kiv2.6_combined_remapped_sorted_filtered.vcf.gz ${prefix}_kiv2.6_combined_remapped_sorted.vcf.gz
+bcftools view -S common_ids.txt -Oz -o ${prefix}_lpa_nonrep_filtered.vcf.gz ${prefix}_lpa_nonrep.vcf.gz
+tabix -p vcf -f ${prefix}_kiv2.6_combined_remapped_sorted_filtered.vcf.gz
+tabix -p vcf -f ${prefix}_lpa_nonrep_filtered.vcf.gz
 
 echo "concat regions"
-bcftools concat -a -Oz -o ukb_combined_final.vcf.gz \
-    ukb_kiv2.6_combined_remapped_sorted_filtered.vcf.gz \
-    ukb_lpa_nonrep_filtered.vcf.gz
+bcftools concat -a -Oz -o ${prefix}_combined_final.vcf.gz \
+    ${prefix}_kiv2.6_combined_remapped_sorted_filtered.vcf.gz \
+    ${prefix}_lpa_nonrep_filtered.vcf.gz
 
-bcftools sort ukb_combined_final.vcf.gz -Oz -o ukb_combined_final_sorted.vcf.gz
-tabix -p vcf -f ukb_combined_final_sorted.vcf.gz
+bcftools sort ${prefix}_combined_final.vcf.gz -Oz -o ${prefix}_combined_final_sorted.vcf.gz
+tabix -p vcf -f ${prefix}_combined_final_sorted.vcf.gz
