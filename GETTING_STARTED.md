@@ -83,12 +83,12 @@ gzip -dc ../output/1000g_eur/variant_calling/1000g_eur.txt.gz \
   | awk -F'\t' 'NR==1 || $2=="PASS"' > vntr_filtered.txt
 
 # Rename the KIV-2 contig to 6
-sed 's/KIV2_6/6/' ../kiv2.fasta > kiv2.fasta
+sed 's/KIV2_6/6/' ../kiv2.fasta > kiv2_chr6.fasta
 
 java -jar mutserve.jar create-vcf \
     --input vntr_filtered.txt \
     --output ukb_rap_renamed_filtered.vcf.gz \
-    --reference kiv2.fasta
+    --reference kiv2_chr6.fasta
 ```
 
 ### 3.2 Prepare the non-repetitive region
