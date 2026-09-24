@@ -1,5 +1,11 @@
 # Getting Started with 1000 Genomes Test Data
 
+<!--
+TODO (Silvia) before sharing with reviewers:
+- Transfer nf-VNTRepeat-count from salvidm to genepi, create a release and update Step 4.
+- Provide hg38 coordinates for the KIV-2 exon projection in scripts/step3/merge_vntr_nonrep.sh (current values appear to be hg19) and update Step 3.3.
+-->
+
 UK Biobank data cannot be shared, so this guide runs the pipeline on ten publicly available samples from the [1000 Genomes Project](https://www.internationalgenome.org/) phase 3, using the [30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38).
 
 The guide covers the data preparation part of the pipeline (Steps 1–4). It produces the two inputs needed for GWAS and fine-mapping: a merged VCF with repetitive and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers.
@@ -112,8 +118,12 @@ The merged VCF is written to `ukb_combined_final_sorted_with_DS_noGT.vcf.gz`. It
 
 KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/salvidm/nf-VNTRepeat-count): mean coverage of the KIV-2 exons in the realigned BAMs (Step 2) divided by the mean coverage of the unique *LPA* exons in the original BAMs (Step 1).
 
+<!-- TODO (Silvia): transfer nf-VNTRepeat-count to genepi, create a release and replace the local clone below with: nextflow run genepi/nf-VNTRepeat-count -r <release> -profile docker ... -->
 ```
-nextflow run salvidm/nf-VNTRepeat-count -r 8af63ab -profile docker \
+git clone git@github.com:salvidm/nf-VNTRepeat-count.git
+git -C nf-VNTRepeat-count checkout 8af63ab
+
+nextflow run nf-VNTRepeat-count/main.nf -profile docker \
   --bam_dir ../input/bams \
   --bam_dir_vntr ../input/step2-output/realign_fastq
 ```
