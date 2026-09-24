@@ -136,7 +136,7 @@ The KIV-2 copy number (`cne_kiv2`) of the three European samples is written to `
 
 ## Steps 5–7 - Association and fine-mapping
 
-The remaining steps need Lp(a) measurements and a large cohort, so they cannot be run on the 1000 Genomes test data. In the study, they were run on UK Biobank as described in the [README](README.md):
+The remaining steps need a large cohort with phenotype data, so they cannot be run on the 1000 Genomes test data. They apply to any trait; in the study, they were run for Lp(a) on UK Biobank as described in the [README](README.md):
 
 | Step | Description | Input from this guide |
 |---|---|---|
