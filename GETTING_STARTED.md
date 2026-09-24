@@ -2,7 +2,7 @@
 
 > [!WARNING]
 > 🚧 **Open TODOs (Silvia) before sharing with reviewers**
-> - 🔒 **Pipeline visibility:** nf-VNTRepeat-count is a private repository (`salvidm`). Transfer it to `genepi`, make it public, create a release and update [Step 4](#step-4---estimate-kiv-2-copy-number).
+> - 🔒 **Pipeline visibility:** nf-VNTRepeat-count is a private repository (`salvidm`). Transfer it to `genepi`, make it public, create a release and replace the local clone in [Step 4](#step-4---estimate-kiv-2-copy-number) with `nextflow run genepi/nf-VNTRepeat-count -r <release> ...`.
 > - 📍 **Coordinates:** provide hg38 coordinates for the KIV-2 exon projection in `scripts/step3/merge_vntr_nonrep.sh` (current values appear to be hg19) and update [Step 3.3](#33-fix-dosages-and-merge-both-regions).
 
 The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is therefore missing from GWAS. This guide shows how our framework turns short-read sequencing data into GWAS-ready KIV-2 variants and copy numbers.
@@ -19,7 +19,7 @@ All steps are reproducible: Steps 2 and 4 run as fixed releases of Nextflow pipe
 | 2 | Call KIV-2 VNTR variation | ✓ (output provided) | Nextflow |
 | 3 | Combine non-repetitive with repetitive region | ✓ | conda |
 | 4 | Estimate KIV-2 copy number | ✓ | Nextflow |
-| 5–7 | GWAS, fine-mapping, dosage extraction | Requires a cohort with Lp(a) measurements (e.g. UK Biobank) | |
+| 5–7 | GWAS, fine-mapping, dosage extraction | Requires a cohort with phenotype data; applicable to any trait (shown for Lp(a) in UK Biobank) | |
 
 ## Setup
 
@@ -105,9 +105,6 @@ bcftools annotate --rename-chrs chr_names.txt -h ds.hdr -Oz -o region_chr6.vcf.g
 ```
 
 ### 3.3 Fix dosages and merge both regions
-> [!WARNING]
-> 📍 **TODO (Silvia):** provide hg38 coordinates for the KIV-2 exon projection in `merge_vntr_nonrep.sh` (current values appear to be hg19) and update the text below.
-
 The KIV-2 variants are called on a single-repeat reference, where their positions have no meaning on chromosome 6. `merge_vntr_nonrep.sh` projects the variants of both KIV-2 exons onto chromosome 6 coordinates, taking into account that *LPA* lies on the reverse strand. This places repetitive and non-repetitive variants in one VCF that standard GWAS and fine-mapping tools can use directly.
 
 The three scripts are run in this order:
@@ -129,9 +126,6 @@ Your result should match [`input/expected/1000g_combined_final_sorted_with_DS_no
 ## Step 4 - Estimate KIV-2 copy number
 
 KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/salvidm/nf-VNTRepeat-count): mean coverage of the KIV-2 exons in the realigned BAMs (Step 2) divided by the mean coverage of the unique *LPA* exons in the original BAMs (Step 1).
-
-> [!WARNING]
-> 🔒 **TODO (Silvia):** the repository is private. Transfer nf-VNTRepeat-count to `genepi`, make it public, create a release and replace the local clone below with `nextflow run genepi/nf-VNTRepeat-count -r <release> -profile docker ...`
 
 ```
 git clone git@github.com:salvidm/nf-VNTRepeat-count.git
