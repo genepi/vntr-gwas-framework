@@ -23,6 +23,12 @@ conda activate vntr-getting-started
 mkdir getting-started && cd getting-started
 ```
 
+Download the single-repeat KIV-2 reference, which is used in Steps 2 and 3:
+```
+wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/v0.4.10/reference-data/kiv2.fasta
+wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/v0.4.10/reference-data/kiv2.fasta.fai
+```
+
 ## Step 1 - Extract *LPA*-region reads
 
 The *LPA*-region BAMs for all ten samples are already provided in [`input/bams/`](input/bams/). They were extracted from the 30x CRAMs as follows (example for HG00265; the CRAM location of each sample is listed in the [sequence index](http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/1000G_2504_high_coverage.sequence.index)):
@@ -36,12 +42,6 @@ samtools view -b -o ../input/bams/HG00265.final.cram.LPA.bam \
 ## Step 2 - Call KIV-2 VNTR variation
 
 KIV-2 variants are called with [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) using the signature-sequence approach. We run it on the three European samples (HG00265, HG01685, NA20772). [Docker](https://docs.docker.com/get-docker/) must be installed and running.
-
-Download the single-repeat KIV-2 reference:
-```
-wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/v0.4.10/reference-data/kiv2.fasta
-wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/v0.4.10/reference-data/kiv2.fasta.fai
-```
 
 Create `step2.config`:
 ```
@@ -75,7 +75,7 @@ bcftools view -r chr6:160530485-160665259 -c 1 \
 unzip ../scripts/step3/mutserve.zip
 
 # Use sample IDs as names and keep PASS variants only
-gzip -dc output/1000g_eur/variant_calling/1000g_eur.txt.gz \
+gzip -dc ../input/step2-output/variant_calling/1000g_eur.txt.gz \
   | sed -E 's/\.[.A-Za-z0-9]*realigned\.bam//g' \
   | awk -F'\t' 'NR==1 || $2=="PASS"' > vntr_filtered.txt
 
@@ -110,33 +110,15 @@ The merged VCF is written to `ukb_combined_final_sorted_with_DS_noGT.vcf.gz`. It
 
 ## Step 4 - Estimate KIV-2 copy number
 
-KIV-2 copy number is estimated from coverage: mean coverage of the KIV-2 exons in the realigned BAMs (Step 2) divided by the coverage of unique *LPA* exons in the original BAMs (Step 1).
+KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/salvidm/nf-VNTRepeat-count): mean coverage of the KIV-2 exons in the realigned BAMs (Step 2) divided by the mean coverage of the unique *LPA* exons in the original BAMs (Step 1).
 
-Prepare the folders expected by the script and run it:
 ```
-cp -r ../input/bams CRAMS
-cp -r output/1000g_eur/realign_fastq realigned
-cp -r ../scripts/step4/input input
-bash ../scripts/step4/calc_estimates.sh
+nextflow run salvidm/nf-VNTRepeat-count -r 8af63ab -profile docker \
+  --bam_dir ../input/bams \
+  --bam_dir_vntr ../input/step2-output/realign_fastq
 ```
 
-Calculate copy numbers in R (same formula as in [`phenotype.Rmd`](scripts/step4/phenotype.Rmd)):
-```r
-library(dplyr)
-library(tidyr)
-
-read.table("coverage_summary_ukb.txt", header = TRUE, sep = "\t") %>%
-  mutate(sample = sub("\\..*", "", BAM)) %>%
-  pivot_wider(id_cols = sample, names_from = BED, values_from = SUM) %>%
-  mutate(
-    cne_kiv2_1 = `kiv2-1.bed` / (1/8 * `exons1.bed`),
-    cne_kiv2_2 = `kiv2-2.bed` / (1/8 * `exons2.bed`),
-    cne_kiv2 = 1/2 * (cne_kiv2_1 + cne_kiv2_2)
-  ) %>%
-  filter(!is.na(cne_kiv2))
-```
-
-This returns the KIV-2 copy number (`cne_kiv2`) for the three European samples.
+The KIV-2 copy number (`cne_kiv2`) of the three European samples is written to `results/formula/estimates.tsv`, the underlying coverage values to `results/coverage/coverage_summary.tsv`.
 
 ## Steps 5–7 - Association and fine-mapping
 
