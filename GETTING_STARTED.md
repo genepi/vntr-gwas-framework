@@ -14,17 +14,18 @@ The guide covers the data preparation part of the pipeline (Steps 1–4). It pro
 
 ## Setup
 
-All required software is listed in [`scripts/getting_started/environment.yml`](scripts/getting_started/environment.yml):
+All required software is listed in [`scripts/getting_started/environment.yml`](scripts/getting_started/environment.yml). From the repository root, create the environment and a working folder in which all steps are executed:
 ```
 conda env create --file scripts/getting_started/environment.yml
 conda activate vntr-getting-started
+mkdir getting-started && cd getting-started
 ```
 
 ## Step 1 - Extract *LPA*-region reads
 
 The *LPA*-region BAMs for all ten samples are already provided in [`input/bams/`](input/bams/). They were extracted from the 30x CRAMs as follows (example for HG00265; the CRAM location of each sample is listed in the [sequence index](http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/1000G_2504_high_coverage.sequence.index)):
 ```
-samtools view -b -o input/bams/HG00265.final.cram.LPA.bam \
+samtools view -b -o ../input/bams/HG00265.final.cram.LPA.bam \
   -T http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa \
   http://ftp.sra.ebi.ac.uk/vol1/run/ERR324/ERR3240222/HG00265.final.cram \
   chr6:160530485-160665259
@@ -43,7 +44,7 @@ wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/v0.4.10/reference-
 Create `step2.config`:
 ```
 params.project="1000g_eur"
-params.input="input/bams/{HG00265,HG01685,NA20772}.final.cram.LPA.bam"
+params.input="../input/bams/{HG00265,HG01685,NA20772}.final.cram.LPA.bam"
 params.reference="kiv2.fasta"
 params.contig="KIV2_6"
 params.build="hg38"
@@ -63,27 +64,21 @@ The VNTR calls are merged with variant calls for the non-repetitive *LPA* region
 ```
 bcftools view -r chr6:160530485-160665259 -c 1 \
   -s HG00265,HG00766,HG01685,HG02697,HG03391,HG03673,HG04186,NA18992,NA19087,NA20772 \
-  -Oz -o input/vcf/lpa_1000g.vcf.gz \
+  -Oz -o ../input/vcf/lpa_1000g.vcf.gz \
   http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20220422_3202_phased_SNV_INDEL_SV/1kGP_high_coverage_Illumina.chr6.filtered.SNV_INDEL_SV_phased_panel.vcf.gz
-```
-
-The Step 3 scripts use fixed file names, so run all commands in a separate folder:
-```
-mkdir step3 && cd step3
 ```
 
 ### 3.1 Convert VNTR results to a VCF file
 ```
-wget https://github.com/seppinho/mutserve/releases/download/v2.0.3/mutserve.zip
-unzip mutserve.zip
+unzip ../scripts/step3/mutserve.zip
 
 # Use sample IDs as names and keep PASS variants only
-gzip -dc ../output/1000g_eur/variant_calling/1000g_eur.txt.gz \
+gzip -dc output/1000g_eur/variant_calling/1000g_eur.txt.gz \
   | sed -E 's/\.[.A-Za-z0-9]*realigned\.bam//g' \
   | awk -F'\t' 'NR==1 || $2=="PASS"' > vntr_filtered.txt
 
 # Rename the KIV-2 contig to 6
-sed 's/KIV2_6/6/' ../kiv2.fasta > kiv2_chr6.fasta
+sed 's/KIV2_6/6/' kiv2.fasta > kiv2_chr6.fasta
 
 java -jar mutserve.jar create-vcf \
     --input vntr_filtered.txt \
@@ -115,12 +110,10 @@ The merged VCF is written to `ukb_combined_final_sorted_with_DS_noGT.vcf.gz`. It
 
 KIV-2 copy number is estimated from coverage: mean coverage of the KIV-2 exons in the realigned BAMs (Step 2) divided by the coverage of unique *LPA* exons in the original BAMs (Step 1).
 
-Go back to the repository root and prepare the folders expected by the script:
+Prepare the folders expected by the script and run it:
 ```
-cd ..
-mkdir step4 && cd step4
 cp -r ../input/bams CRAMS
-cp -r ../output/1000g_eur/realign_fastq realigned
+cp -r output/1000g_eur/realign_fastq realigned
 cp -r ../scripts/step4/input input
 bash ../scripts/step4/calc_estimates.sh
 ```
