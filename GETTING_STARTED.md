@@ -4,15 +4,15 @@ UK Biobank data cannot be shared, so this guide runs the pipeline on ten publicl
 
 The guide covers the data preparation part of the pipeline (Steps 1–4). It produces the two inputs needed for GWAS and fine-mapping: a merged VCF with repetitive and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers.
 
-All steps are reproducible: VNTR calling uses a fixed release of our Nextflow pipeline ([vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) v0.4.10), which runs all tools in a Docker container, and all other tools are installed from a single conda environment.
+All steps are reproducible: Steps 2 and 4 run as fixed releases of Nextflow pipelines, which run all tools in Docker containers, and Steps 1 and 3 use tools installed from a single conda environment.
 
-| Step | Description | Runs on test data |
-|---|---|---|
-| 1 | Extract *LPA*-region reads | ✓ (BAMs provided) |
-| 2 | Call KIV-2 VNTR variation | ✓ |
-| 3 | Combine non-repetitive with repetitive region | ✓ |
-| 4 | Estimate KIV-2 copy number | ✓ |
-| 5–7 | GWAS, fine-mapping, dosage extraction | UK Biobank only |
+| Step | Description | Runs on test data | Reproducibility |
+|---|---|---|---|
+| 1 | Extract *LPA*-region reads | ✓ (BAMs provided) | conda |
+| 2 | Call KIV-2 VNTR variation | ✓ (output provided) | Nextflow |
+| 3 | Combine non-repetitive with repetitive region | ✓ | conda |
+| 4 | Estimate KIV-2 copy number | ✓ | Nextflow |
+| 5–7 | GWAS, fine-mapping, dosage extraction | UK Biobank only | |
 
 ## Setup
 
