@@ -56,7 +56,7 @@ Run the pipeline:
 nextflow run genepi/vntr-calling-nf -r v0.4.10 -c step2.config -profile docker
 ```
 
-The VNTR calls are written to `output/1000g_eur/variant_calling/1000g_eur.txt.gz` and the realigned BAMs needed for Step 4 to `output/1000g_eur/realign_fastq/`. Our realigned BAMs are provided in [`input/step2-output/`](input/step2-output/), so you can compare your results with them.
+The VNTR calls are written to `output/1000g_eur/variant_calling/` and the realigned BAMs needed for Step 4 to `output/1000g_eur/realign_fastq/`. Our output of this step is provided with the same structure in [`input/step2-output/`](input/step2-output/), so you can compare your results with it.
 
 ## Step 3 - Combine non-repetitive with repetitive region
 
