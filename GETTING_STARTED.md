@@ -7,10 +7,14 @@
 
 The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is therefore missing from GWAS. This guide shows how our framework turns short-read sequencing data into GWAS-ready KIV-2 variants and copy numbers.
 
-The framework is not limited to *LPA*. It can be applied to other coding VNTRs by providing:
-- a reference sequence of a single repeat unit and a BED file of the VNTR region for read extraction (Step 2, `params.reference` and `params.region` of vntr-calling-nf),
-- the positions of the repeat exons within the repeat unit and their target coordinates on the chromosome (Step 3, `merge_vntr_nonrep.sh`),
-- BED files of the repetitive exons and of non-repetitive exons of the same gene for copy number estimation (Step 4, `vntr_exons_coord` and `exons_coord` of nf-VNTRepeat-count).
+> [!TIP]
+> 🧬 **Not limited to *LPA*: the framework applies to other coding VNTRs.** Only the following inputs are needed:
+>
+> | Step | Input for a new VNTR | Parameter |
+> |---|---|---|
+> | 2 | Reference sequence of a single repeat unit and BED file of the VNTR region | `params.reference`, `params.region` (vntr-calling-nf) |
+> | 3 | Positions of the repeat exons within the repeat unit and their target coordinates on the chromosome | `merge_vntr_nonrep.sh` |
+> | 4 | BED files of the repetitive exons and of non-repetitive exons of the same gene | `vntr_exons_coord`, `exons_coord` (nf-VNTRepeat-count) |
 
 UK Biobank data cannot be shared, so the guide runs the pipeline on ten publicly available samples from the [1000 Genomes Project](https://www.internationalgenome.org/) phase 3, using the [30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38).
 
