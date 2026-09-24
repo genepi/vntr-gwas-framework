@@ -82,25 +82,24 @@ sed 's/KIV2_6/6/' kiv2.fasta > kiv2_chr6.fasta
 
 java -jar mutserve.jar create-vcf \
     --input vntr_filtered.txt \
-    --output ukb_rap_renamed_filtered.vcf.gz \
+    --output vntr_filtered.vcf.gz \
     --reference kiv2_chr6.fasta
 ```
 
 ### 3.2 Prepare the non-repetitive region
-Rename `chr6` to `6`, unphase the genotypes and add an empty DS field:
+Rename `chr6` to `6` and add an empty DS field, which is filled from the genotypes in the next step:
 ```
 echo "chr6 6" > chr_names.txt
 echo '##FORMAT=<ID=DS,Number=1,Type=Float,Description="Genotype dosage">' > ds.hdr
 
-bcftools annotate --rename-chrs chr_names.txt -h ds.hdr ../input/vcf/lpa_1000g.vcf.gz -Ou \
-  | bcftools +setGT -Oz -o region_chr6.vcf.gz -- -t a -n u
+bcftools annotate --rename-chrs chr_names.txt -h ds.hdr -Oz -o region_chr6.vcf.gz ../input/vcf/lpa_1000g.vcf.gz
 ```
 
 ### 3.3 Fix dosages and merge both regions
 The KIV-2 variants are called on a single-repeat reference, where their positions have no meaning on chromosome 6. `merge.sh` projects the variants of both KIV-2 exons onto chromosome 6 coordinates, taking into account that *LPA* lies on the reverse strand. This places repetitive and non-repetitive variants in one VCF that standard GWAS and fine-mapping tools can use directly.
 ```
 sh ../scripts/step3/fix_dosage.sh
-sh ../scripts/step3/merge.sh
+sh ../scripts/step3/merge.sh vntr_filtered.vcf.gz
 sh ../scripts/step3/dosage.sh
 ```
 
