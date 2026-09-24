@@ -61,7 +61,7 @@ params.publish_realigned=true
 
 Run the pipeline:
 ```
-NXF_VER=24.10.1 nextflow run genepi/vntr-calling-nf -r v0.4.10 -c step2.config -profile docker
+nextflow run genepi/vntr-calling-nf -r v0.4.10 -c step2.config -profile docker
 ```
 
 The VNTR calls are written to `output/1000g_eur/variant_calling/` and the realigned BAMs needed for Step 4 to `output/1000g_eur/realign_fastq/`. Our output of this step is provided with the same structure in [`input/step2-output/`](input/step2-output/), so you can compare your results with it.
@@ -127,6 +127,8 @@ NXF_VER=25.10.0 nextflow run nf-VNTRepeat-count/main.nf -profile docker \
   --bam_dir ../input/bams \
   --bam_dir_vntr ../input/step2-output/realign_fastq
 ```
+
+This pipeline requires Nextflow 25.10, which is selected with `NXF_VER` and downloaded automatically on first use.
 
 The KIV-2 copy number (`cne_kiv2`) of the three European samples is written to `results/formula/estimates.tsv`, the underlying coverage values to `results/coverage/coverage_summary.tsv`.
 
