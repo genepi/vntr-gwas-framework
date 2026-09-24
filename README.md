@@ -193,7 +193,7 @@ The VNTR calls from Step 2 are converted to VCF format and merged with TOPMed im
 |---|---|
 | **Input** | `ukb_rap.txt.gz` (VNTR calls from Step 2), `ukb21007_c6_b0_v1.bgen/.sample` (TOPMed imputed data, chr6 *LPA* locus) |
 | **Output** | `ukb_combined_final_sorted_with_DS_noGT.vcf.gz` — merged VCF of VNTR repetitive region + imputed non-repetitive region, with DS dosage field |
-| **Script** | `scripts/step3/fix_dosage.sh`, `scripts/step3/merge.sh`, `scripts/step3/dosage.sh` |
+| **Script** | `scripts/step3/gt_to_dosage.sh`, `scripts/step3/merge_vntr_nonrep.sh`, `scripts/step3/finalize_dosage.sh` |
 
 ### 3.1 Convert VNTR results to a VCF file
 
@@ -230,13 +230,13 @@ qctool \
 The non-repetitive region may lack DS for 0/0 genotypes and sometimes contains only GT. We fix this by replacing GT-only entries with 0, 1, or 2 and by adding DS where DS is ".". The script is available in `scripts/step3`.
 
 ```
-sh fix_dosage.sh
+sh gt_to_dosage.sh
 ```
 
 ### 3.4 Merge non-repetitive and repetitive regions
 ```
-sh merge.sh
-sh dosage.sh
+sh merge_vntr_nonrep.sh
+sh finalize_dosage.sh
 ```
 
 ## Step 4 - Estimate per-sample KIV-2 copy number
@@ -386,9 +386,9 @@ R packages used in Steps 4 and 6: `dplyr`, `tidyr`, `ggplot2`, `stringr`, `knitr
 │   ├── step1/
 │   │   └── extract_lpa.sh            # Step 1: download CRAMs, extract LPA BAMs
 │   ├── step3/
-│   │   ├── fix_dosage.sh             # Step 3: fix missing DS fields in imputed VCF
-│   │   ├── merge.sh                  # Step 3: merge VNTR + imputed VCF
-│   │   └── dosage.sh                 # Step 3: annotate merged VCF with DS field
+│   │   ├── gt_to_dosage.sh           # Step 3: fill missing DS fields from GT in non-repetitive VCF
+│   │   ├── merge_vntr_nonrep.sh      # Step 3: merge VNTR + imputed VCF
+│   │   └── finalize_dosage.sh        # Step 3: set final DS in merged VCF and remove GT
 │   ├── step4/
 │   │   ├── input/
 │   │   │   ├── exons1.bed            # Step 4: BED file for coverage

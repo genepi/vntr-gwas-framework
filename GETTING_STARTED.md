@@ -4,6 +4,8 @@ UK Biobank data cannot be shared, so this guide runs the pipeline on ten publicl
 
 The guide covers the data preparation part of the pipeline (Steps 1–4). It produces the two inputs needed for GWAS and fine-mapping: a merged VCF with repetitive and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers.
 
+All steps are reproducible: VNTR calling uses a fixed release of our Nextflow pipeline ([vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) v0.4.10), which runs all tools in a Docker container, and all other tools are installed from a single conda environment.
+
 | Step | Description | Runs on test data |
 |---|---|---|
 | 1 | Extract *LPA*-region reads | ✓ (BAMs provided) |
@@ -96,11 +98,12 @@ bcftools annotate --rename-chrs chr_names.txt -h ds.hdr -Oz -o region_chr6.vcf.g
 ```
 
 ### 3.3 Fix dosages and merge both regions
-The KIV-2 variants are called on a single-repeat reference, where their positions have no meaning on chromosome 6. `merge.sh` projects the variants of both KIV-2 exons onto chromosome 6 coordinates, taking into account that *LPA* lies on the reverse strand. This places repetitive and non-repetitive variants in one VCF that standard GWAS and fine-mapping tools can use directly.
+<!-- TODO (Silvia): provide hg38 coordinates for the KIV-2 exon projection in merge_vntr_nonrep.sh (current values appear to be hg19) and update the text below. -->
+The KIV-2 variants are called on a single-repeat reference, where their positions have no meaning on chromosome 6. `merge_vntr_nonrep.sh` projects the variants of both KIV-2 exons onto chromosome 6 coordinates, taking into account that *LPA* lies on the reverse strand. This places repetitive and non-repetitive variants in one VCF that standard GWAS and fine-mapping tools can use directly.
 ```
-sh ../scripts/step3/fix_dosage.sh
-sh ../scripts/step3/merge.sh vntr_filtered.vcf.gz
-sh ../scripts/step3/dosage.sh
+sh ../scripts/step3/gt_to_dosage.sh
+sh ../scripts/step3/merge_vntr_nonrep.sh vntr_filtered.vcf.gz
+sh ../scripts/step3/finalize_dosage.sh
 ```
 
 The merged VCF is written to `ukb_combined_final_sorted_with_DS_noGT.vcf.gz`. It contains the three European samples.

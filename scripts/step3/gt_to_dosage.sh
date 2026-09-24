@@ -21,7 +21,8 @@ awk '{
         ds = $(4+i);
         gt = $(4+n+i);
         if(ds=="." || ds=="") {
-            # apply GT mapping if ds is missing
+            # apply GT mapping if ds is missing (phased GTs are treated as unphased)
+            gsub(/\|/, "/", gt)
             if(gt=="0/0") val=0.0;
             else if(gt=="0/1" || gt=="1/0") val=1.0;
             else if(gt=="1/1") val=2.0;

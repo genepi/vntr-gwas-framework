@@ -1,11 +1,13 @@
 set -e
+# VNTR calls converted to VCF (Step 3.1)
+vntr_vcf="${1:-ukb_rap_renamed_filtered.vcf.gz}"
 echo "get lpa non-rep region"
 #bcftools filter /mnt/genepi-biobank/data/gwas/ukbb/imputed/vcfs/ukb_imp_chr6_v3.vcf.gz  --regions 6:160952514-161033863,6:161038409-161085307 -Ov -o ukb_lpa_nonrep.vcf.gz
 # THIS FILE HAS BEEN CREATED BY SETTING THE GT value to DS for GENOTYPED ONLY VARIANTS 
 cp region_chr6_fixed.vcf.gz ukb_lpa_nonrep.vcf.gz
 tabix ukb_lpa_nonrep.vcf.gz
 echo "extract exome regions"
-bcftools norm -m -any ukb_rap_renamed_filtered.vcf.gz  -o 2022-10-21-ukbb-kiv2-annoated.renamed.passed.norm.vcf.gz -Oz
+bcftools norm -m -any "$vntr_vcf"  -o 2022-10-21-ukbb-kiv2-annoated.renamed.passed.norm.vcf.gz -Oz
 tabix -p vcf -f 2022-10-21-ukbb-kiv2-annoated.renamed.passed.norm.vcf.gz
 bcftools filter 2022-10-21-ukbb-kiv2-annoated.renamed.passed.norm.vcf.gz --regions 6:481-840 -Ov -o ukb_kiv2.6_exon1.vcf.gz
 bcftools filter 2022-10-21-ukbb-kiv2-annoated.renamed.passed.norm.vcf.gz --regions 6:4644-5025 -Ov -o ukb_kiv2.6_exon2.vcf.gz
@@ -46,6 +48,8 @@ awk -F'\t' 'BEGIN{OFS="\t"}
 bgzip ukb_kiv2.6_combined_fixed.vcf
 tabix -p vcf -f ukb_kiv2.6_combined_fixed.vcf.gz
 
+# TODO (Silvia): provide hg38 coordinates for map_start/map_end below.
+# The current values (161033864-161038408) appear to be hg19, while the non-repetitive region is hg38.
 zcat ukb_kiv2.6_combined_fixed.vcf.gz | \
 awk 'BEGIN {
     OFS = "\t"
