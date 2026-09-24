@@ -61,7 +61,7 @@ params.publish_realigned=true
 
 Run the pipeline:
 ```
-nextflow run genepi/vntr-calling-nf -r v0.4.10 -c step2.config -profile docker
+NXF_VER=24.10.1 nextflow run genepi/vntr-calling-nf -r v0.4.10 -c step2.config -profile docker
 ```
 
 The VNTR calls are written to `output/1000g_eur/variant_calling/` and the realigned BAMs needed for Step 4 to `output/1000g_eur/realign_fastq/`. Our output of this step is provided with the same structure in [`input/step2-output/`](input/step2-output/), so you can compare your results with it.
@@ -123,7 +123,7 @@ KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://g
 git clone git@github.com:salvidm/nf-VNTRepeat-count.git
 git -C nf-VNTRepeat-count checkout 8af63ab
 
-nextflow run nf-VNTRepeat-count/main.nf -profile docker \
+NXF_VER=25.10.0 nextflow run nf-VNTRepeat-count/main.nf -profile docker \
   --bam_dir ../input/bams \
   --bam_dir_vntr ../input/step2-output/realign_fastq
 ```
