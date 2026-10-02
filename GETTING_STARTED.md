@@ -3,7 +3,6 @@
 > [!WARNING]
 > 🚧 **Open TODOs (Silvia) before sharing with reviewers**
 > - 🔒 **Pipeline visibility:** nf-VNTRepeat-count is a private repository (`salvidm`). Transfer it to `genepi`, make it public, create a release and replace the local clone in [Step 4](#step-4---estimate-kiv-2-copy-number) with `nextflow run genepi/nf-VNTRepeat-count -r <release> ...`.
-> - 📍 **Coordinates:** provide hg38 coordinates for the KIV-2 exon projection in `scripts/step3/merge_vntr_nonrep.sh` (current values appear to be hg19) and update [Step 3.3](#33-fix-dosages-and-merge-both-regions).
 
 The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is therefore missing from GWAS. This guide turns short-read sequencing data into the two inputs needed for GWAS and fine-mapping: a merged VCF with KIV-2 and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers. As UK Biobank data cannot be shared, it uses ten public samples from the [1000 Genomes 30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38). The framework can also be [applied to other VNTRs](#applying-the-framework-to-other-vntrs).
 

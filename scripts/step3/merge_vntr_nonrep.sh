@@ -4,7 +4,6 @@ vntr_vcf="${1:-ukb_rap_renamed_filtered.vcf.gz}"
 # Prefix for all output files (final output: <prefix>_combined_final_sorted.vcf.gz)
 prefix="${2:-ukb}"
 echo "get lpa non-rep region"
-#bcftools filter /mnt/genepi-biobank/data/gwas/ukbb/imputed/vcfs/ukb_imp_chr6_v3.vcf.gz  --regions 6:160952514-161033863,6:161038409-161085307 -Ov -o ukb_lpa_nonrep.vcf.gz
 # THIS FILE HAS BEEN CREATED BY SETTING THE GT value to DS for GENOTYPED ONLY VARIANTS 
 cp region_chr6_fixed.vcf.gz ${prefix}_lpa_nonrep.vcf.gz
 tabix ${prefix}_lpa_nonrep.vcf.gz
@@ -50,22 +49,21 @@ awk -F'\t' 'BEGIN{OFS="\t"}
 bgzip ${prefix}_kiv2.6_combined_fixed.vcf
 tabix -p vcf -f ${prefix}_kiv2.6_combined_fixed.vcf.gz
 
-# TODO (Silvia): provide hg38 coordinates for map_start/map_end below.
-# The current values (161033864-161038408) appear to be hg19, while the non-repetitive region is hg38.
+# Project KIV-2 exon positions onto chr6 (hg38, reverse strand)
 zcat ${prefix}_kiv2.6_combined_fixed.vcf.gz | \
 awk 'BEGIN {
     OFS = "\t"
     # exon1 mapping
     start1 = 481
     end1   = 840
-    map_start1 = 161038408
-    map_end1   = 161038049
+    map_start1 = 160617376
+    map_end1   = 160617017
 
     # exon2 mapping
     start2 = 4644
     end2   = 5025
-    map_start2 = 161034245
-    map_end2   = 161033864
+    map_start2 = 160613213
+    map_end2   = 160612832
 }
 # keep headers unchanged
 /^#/ { print; next }
