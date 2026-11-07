@@ -2,17 +2,16 @@
 
 > [!WARNING]
 > 🚧 **Open TODOs (Silvia) before sharing with reviewers**
-> - 🔒 **Pipeline visibility:** nf-VNTRepeat-count is a private repository (`salvidm`). Transfer it to `genepi`, make it public, create a release and replace the local clone in [Step 4](#step-4---estimate-kiv-2-copy-number) with `nextflow run genepi/nf-VNTRepeat-count -r <release> ...`.
+> - 🏷️ **Pipeline release:** nf-VNTRepeat-count has no release yet. Create one and replace the commit hash in [Step 2.2](#22-estimate-kiv-2-copy-number) with `-r <release>`.
 
 The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is therefore missing from GWAS. This guide turns short-read sequencing data into the two inputs needed for GWAS and fine-mapping: a merged VCF with KIV-2 and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers. As UK Biobank data cannot be shared, it uses ten public samples from the [1000 Genomes 30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38). The framework can also be [applied to other VNTRs](#applying-the-framework-to-other-vntrs).
 
 | Step | Description | Runs on test data | Reproducibility |
 |---|---|---|---|
 | 1 | Extract *LPA*-region reads | ✓ (BAMs provided) | conda |
-| 2 | Call KIV-2 VNTR variation | ✓ (output provided) | Nextflow |
+| 2 | Call KIV-2 VNTR variation and estimate copy number | ✓ (output provided) | Nextflow |
 | 3 | Combine non-repetitive with repetitive region | ✓ | conda |
-| 4 | Estimate KIV-2 copy number | ✓ | Nextflow |
-| 5–7 | GWAS, fine-mapping, dosage extraction | Requires a cohort with phenotype data; applicable to any trait (shown for Lp(a) in UK Biobank) | |
+| 4–7 | Phenotype file, GWAS, fine-mapping, dosage extraction | Requires a cohort with phenotype data; applicable to any trait (shown for Lp(a) in UK Biobank) | |
 
 ## Setup
 
@@ -39,9 +38,13 @@ samtools view -b -o ../input/bams/HG00265.final.cram.LPA.bam \
   chr6:160530485-160665259
 ```
 
-## Step 2 - Call KIV-2 VNTR variation
+## Step 2 - Call KIV-2 VNTR variation and estimate copy number
 
-KIV-2 variants are called with [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) using the signature-sequence approach. We run it on the three European samples (HG00265, HG01685, NA20772). [Docker](https://docs.docker.com/get-docker/) must be installed and running.
+Both parts of this step run as Nextflow pipelines. [Docker](https://docs.docker.com/get-docker/) must be installed and running.
+
+### 2.1 Call KIV-2 variants
+
+KIV-2 variants are called with [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) using the signature-sequence approach. We run it on the three European samples (HG00265, HG01685, NA20772).
 
 Create `step2.config`:
 ```
@@ -58,7 +61,36 @@ Run the pipeline:
 nextflow run genepi/vntr-calling-nf -r v0.4.10 -c step2.config -profile docker
 ```
 
-The VNTR calls are written to `output/1000g_eur/variant_calling/` and the realigned BAMs needed for Step 4 to `output/1000g_eur/realign_fastq/`. Our output of this step is provided with the same structure in [`input/step2-output/`](input/step2-output/), so you can compare your results with it.
+The VNTR calls are written to `output/1000g_eur/variant_calling/` and the realigned BAMs needed for Step 2.2 to `output/1000g_eur/realign_fastq/`. Our output of this step is provided with the same structure in [`input/step2-output/`](input/step2-output/), so you can compare your results with it.
+
+### 2.2 Estimate KIV-2 copy number
+
+KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count): mean coverage of the KIV-2 exons in the realigned BAMs (Step 2.1) divided by mean coverage of the unique *LPA* exons in the original BAMs (Step 1). The exon coordinates are provided in [`input/bed/`](input/bed/).
+
+Create `copy_number.config`:
+```
+params {
+    bam_dir      = "../input/bams"
+    bam_dir_vntr = "../input/step2-output/realign_fastq"
+    nonrep_bed   = "../input/bed/exons{1,2}.bed"
+    vntr_bed     = "../input/bed/kiv2-{1,2}.bed"
+}
+```
+
+Run the pipeline:
+```
+NXF_VER=25.10.0 nextflow run genepi/nf-VNTRepeat-count -r d50227f0995b6becab5f60c4f75af3894f9395c4 -c copy_number.config -profile docker
+```
+
+This pipeline requires Nextflow 25.10 or later, which is selected with `NXF_VER` and downloaded automatically on first use.
+
+The KIV-2 copy number (`cne_vntr`) is written to `results/estimates/estimates.tsv`. The file lists all ten samples from `input/bams/`, but only the three European samples have realigned BAMs, so the other seven are `NA`. Your result should match:
+
+| Sample | `cne_vntr` |
+|---|---|
+| HG00265 | 15.61 |
+| HG01685 | 12.35 |
+| NA20772 | 18.12 |
 
 ## Step 3 - Combine non-repetitive with repetitive region
 
@@ -116,30 +148,14 @@ The merged VCF is written to `1000g_combined_final_sorted_with_DS_noGT.vcf.gz`. 
 
 Your result should match [`input/expected/1000g_combined_final_sorted_with_DS_noGT.vcf.gz`](input/expected/).
 
-## Step 4 - Estimate KIV-2 copy number
-
-KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/salvidm/nf-VNTRepeat-count): mean coverage of the KIV-2 exons in the realigned BAMs (Step 2) divided by the mean coverage of the unique *LPA* exons in the original BAMs (Step 1).
-
-```
-git clone git@github.com:salvidm/nf-VNTRepeat-count.git
-git -C nf-VNTRepeat-count checkout 8af63ab
-
-NXF_VER=25.10.0 nextflow run nf-VNTRepeat-count/main.nf -profile docker \
-  --bam_dir ../input/bams \
-  --bam_dir_vntr ../input/step2-output/realign_fastq
-```
-
-This pipeline requires Nextflow 25.10, which is selected with `NXF_VER` and downloaded automatically on first use.
-
-The KIV-2 copy number (`cne_kiv2`) of the three European samples is written to `results/formula/estimates.tsv`, the underlying coverage values to `results/coverage/coverage_summary.tsv`. Your result should match [`input/expected/estimates.tsv`](input/expected/).
-
-## Steps 5–7 - Association and fine-mapping
+## Steps 4–7 - Association and fine-mapping
 
 The remaining steps need a large cohort with phenotype data, so they cannot be run on the 1000 Genomes test data. They apply to any trait; in the study, they were run for Lp(a) on UK Biobank as described in the [README](README.md):
 
 | Step | Description | Input from this guide |
 |---|---|---|
-| [5 - GWAS](README.md#step-5---run-combined-gwas-for-lpa-trait) | Genome-wide association for Lp(a) with regenie via [nf-gwas](https://github.com/genepi/nf-gwas), with KIV-2 copy number as covariate | Merged VCF (Step 3), copy numbers (Step 4) |
+| [4 - Phenotype file](README.md#step-4---estimate-per-sample-kiv-2-copy-number) | Combine KIV-2 copy numbers with phenotype data and covariates | Copy numbers (Step 2) |
+| [5 - GWAS](README.md#step-5---run-combined-gwas-for-lpa-trait) | Genome-wide association for Lp(a) with regenie via [nf-gwas](https://github.com/genepi/nf-gwas), with KIV-2 copy number as covariate | Merged VCF (Step 3), phenotype file (Step 4) |
 | [6 - Fine-mapping](README.md#step-6---fine-map-association-signals-using-susie) | SuSiE fine-mapping of the *LPA* locus using an LD matrix from the merged VCF | Merged VCF (Step 3), GWAS results (Step 5) |
 | [7 - Dosages](README.md#step-7---extract-dosages-for-credible-set-variants) | Per-sample dosages of credible-set variants for downstream analyses | Fine-mapping results (Step 6) |
 
@@ -149,9 +165,9 @@ The framework is not limited to *LPA* and can be applied to other coding VNTRs b
 
 | Step | Input for a new VNTR | Parameter |
 |---|---|---|
-| 2 | Reference sequence of a single repeat unit and BED file of the VNTR region | `params.reference`, `params.region` (vntr-calling-nf) |
+| 2.1 | Reference sequence of a single repeat unit and BED file of the VNTR region | `params.reference`, `params.region` (vntr-calling-nf) |
+| 2.2 | BED files of the repetitive exons and of non-repetitive exons of the same gene | `vntr_bed`, `nonrep_bed` (nf-VNTRepeat-count) |
 | 3 | Positions of the repeat exons within the repeat unit and their target coordinates on the chromosome | `merge_vntr_nonrep.sh` |
-| 4 | BED files of the repetitive exons and of non-repetitive exons of the same gene | `vntr_exons_coord`, `exons_coord` (nf-VNTRepeat-count) |
 
 ## Explore the results
 
