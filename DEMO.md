@@ -9,6 +9,8 @@ The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is there
 | 3 | Combine non-repetitive with repetitive region | ✓ | conda |
 | 4–7 | Phenotype file, GWAS, fine-mapping, dosage extraction | Requires a cohort with phenotype data; applicable to any trait (shown for Lp(a) in UK Biobank) | |
 
+**Run time:** On an Apple Silicon Mac, the first run takes about 5 minutes, including creating the conda environment and downloading about 4.6 GB of containers, so it depends on your connection. After that, Steps 2 and 3 take less than a minute.
+
 ## Setup
 
 All required software is listed in [`scripts/demo/environment.yml`](scripts/demo/environment.yml). From the repository root, create the environment and a working folder in which all steps are executed:
