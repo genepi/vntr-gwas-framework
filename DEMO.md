@@ -1,4 +1,4 @@
-# Getting Started with 1000 Genomes Test Data
+# Demo: From Short Reads to GWAS-Ready VNTR Data
 
 The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is therefore missing from GWAS. This guide turns short-read sequencing data into the two inputs needed for GWAS and fine-mapping: a merged VCF with KIV-2 and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers. As UK Biobank data cannot be shared, it uses eight public samples from the [1000 Genomes 30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38). The framework can also be [applied to other VNTRs](#applying-the-framework-to-other-vntrs).
 
@@ -11,11 +11,11 @@ The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is there
 
 ## Setup
 
-All required software is listed in [`scripts/getting_started/environment.yml`](scripts/getting_started/environment.yml). From the repository root, create the environment and a working folder in which all steps are executed:
+All required software is listed in [`scripts/demo/environment.yml`](scripts/demo/environment.yml). From the repository root, create the environment and a working folder in which all steps are executed:
 ```
-conda env create --file scripts/getting_started/environment.yml
-conda activate vntr-getting-started
-mkdir getting-started && cd getting-started
+conda env create --file scripts/demo/environment.yml
+conda activate vntr-demo
+mkdir demo && cd demo
 ```
 
 Download the single-repeat KIV-2 reference, which is used in Steps 2 and 3:
@@ -174,14 +174,14 @@ Your result should match [`input/expected/1000g_combined_final_sorted_with_DS_no
 
 ## Steps 4–7 - Association and fine-mapping
 
-The remaining steps need a large cohort with phenotype data, so they cannot be run on the 1000 Genomes test data. They apply to any trait; in the study, they were run for Lp(a) on UK Biobank as described in the [README](README.md):
+The remaining steps need a large cohort with phenotype data, so they cannot be run on the 1000 Genomes test data. They apply to any trait; in the study, they were run for Lp(a) on UK Biobank as described in the [UK Biobank analysis](UKB_ANALYSIS.md):
 
 | Step | Description | Input from this guide |
 |---|---|---|
-| [4 - Phenotype file](README.md#step-4---prepare-phenotype-file) | Combine KIV-2 copy numbers with phenotype data and covariates | Copy numbers (Step 2) |
-| [5 - GWAS](README.md#step-5---run-combined-gwas-for-lpa-trait) | Genome-wide association for Lp(a) with regenie via [nf-gwas](https://github.com/genepi/nf-gwas), with KIV-2 copy number as covariate | Merged VCF (Step 3), phenotype file (Step 4) |
-| [6 - Fine-mapping](README.md#step-6---fine-map-association-signals-using-susie) | SuSiE fine-mapping of the *LPA* locus using an LD matrix from the merged VCF | Merged VCF (Step 3), GWAS results (Step 5) |
-| [7 - Dosages](README.md#step-7---extract-dosages-for-credible-set-variants) | Per-sample dosages of credible-set variants for downstream analyses | Fine-mapping results (Step 6) |
+| [4 - Phenotype file](UKB_ANALYSIS.md#step-4---prepare-phenotype-file) | Combine KIV-2 copy numbers with phenotype data and covariates | Copy numbers (Step 2) |
+| [5 - GWAS](UKB_ANALYSIS.md#step-5---run-combined-gwas-for-lpa-trait) | Genome-wide association for Lp(a) with regenie via [nf-gwas](https://github.com/genepi/nf-gwas), with KIV-2 copy number as covariate | Merged VCF (Step 3), phenotype file (Step 4) |
+| [6 - Fine-mapping](UKB_ANALYSIS.md#step-6---fine-map-association-signals-using-susie) | SuSiE fine-mapping of the *LPA* locus using an LD matrix from the merged VCF | Merged VCF (Step 3), GWAS results (Step 5) |
+| [7 - Dosages](UKB_ANALYSIS.md#step-7---extract-dosages-for-credible-set-variants) | Per-sample dosages of credible-set variants for downstream analyses | Fine-mapping results (Step 6) |
 
 ## Applying the framework to other VNTRs
 

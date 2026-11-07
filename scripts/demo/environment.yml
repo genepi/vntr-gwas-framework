@@ -1,4 +1,4 @@
-name: vntr-getting-started
+name: vntr-demo
 channels:
     - conda-forge
     - bioconda
