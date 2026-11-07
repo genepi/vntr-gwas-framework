@@ -63,12 +63,12 @@ Step 2.2`"]
 
 ### 2.1 Call KIV-2 variants with vntr-calling-nf
 
-KIV-2 variants are called with [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) using the signature-sequence approach. We run it on the three European samples (HG00265, HG01685, NA20772).
+KIV-2 variants are called with [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) using the signature-sequence approach. We run it on all ten samples.
 
 Create `step2.config`:
 ```
-params.project="1000g_eur"
-params.input="../input/bams/{HG00265,HG01685,NA20772}.final.cram.LPA.bam"
+params.project="1000g"
+params.input="../input/bams/*.bam"
 params.reference="kiv2.fasta"
 params.contig="KIV2_6"
 params.build="hg38"
@@ -80,7 +80,7 @@ Run the pipeline:
 nextflow run genepi/vntr-calling-nf -r v0.4.10 -c step2.config -profile docker
 ```
 
-The VNTR calls are written to `output/1000g_eur/variant_calling/` and the realigned BAMs needed for Step 2.2 to `output/1000g_eur/realign_fastq/`. Our output of this step is provided with the same structure in [`input/step2-output/`](input/step2-output/), so you can compare your results with it.
+The VNTR calls are written to `output/1000g/variant_calling/` and the realigned BAMs needed for Step 2.2 to `output/1000g/realign_fastq/`. Our output of this step is provided with the same structure in [`input/step2-output/`](input/step2-output/), so you can compare your results with it.
 
 ### 2.2 Estimate KIV-2 copy number with nf-VNTRepeat-count
 
@@ -103,12 +103,19 @@ NXF_VER=25.10.0 nextflow run genepi/nf-VNTRepeat-count -r d50227f0995b6becab5f60
 
 This pipeline requires Nextflow 25.10 or later, which is selected with `NXF_VER` and downloaded automatically on first use.
 
-The KIV-2 copy number (`cne_vntr`) is written to `results/estimates/estimates.tsv`. The file lists all ten samples from `input/bams/`, but only the three European samples have realigned BAMs, so the other seven are `NA`. Your result should match:
+The KIV-2 copy number (`cne_vntr`) of all ten samples is written to `results/estimates/estimates.tsv`. Your result should match:
 
 | Sample | `cne_vntr` |
 |---|---|
 | HG00265 | 15.61 |
+| HG00766 | 25.84 |
 | HG01685 | 12.35 |
+| HG02697 | 18.72 |
+| HG03391 | 17.09 |
+| HG03673 | 17.14 |
+| HG04186 | 20.51 |
+| NA18992 | 14.43 |
+| NA19087 | 19.34 |
 | NA20772 | 18.12 |
 
 ## Step 3 - Combine non-repetitive with repetitive region
@@ -126,7 +133,7 @@ bcftools view -r chr6:160530485-160665259 -c 1 \
 unzip ../scripts/step3/mutserve.zip
 
 # Use sample IDs as names and keep PASS variants only
-gzip -dc ../input/step2-output/variant_calling/1000g_eur.txt.gz \
+gzip -dc ../input/step2-output/variant_calling/1000g.txt.gz \
   | sed -E 's/\.[.A-Za-z0-9]*realigned\.bam//g' \
   | awk -F'\t' 'NR==1 || $2=="PASS"' > vntr_filtered.txt
 
@@ -161,7 +168,7 @@ sh ../scripts/step3/merge_vntr_nonrep.sh vntr_filtered.vcf.gz 1000g
 sh ../scripts/step3/finalize_dosage.sh 1000g
 ```
 
-The merged VCF is written to `1000g_combined_final_sorted_with_DS_noGT.vcf.gz`. It contains the three European samples, and all variants are encoded as dosages (DS):
+The merged VCF is written to `1000g_combined_final_sorted_with_DS_noGT.vcf.gz`. It contains all ten samples, and all variants are encoded as dosages (DS):
 - **Non-repetitive variants:** genotype dosage (0, 1 or 2).
 - **KIV-2 variants:** 0 for non-carriers, and 1 + the fraction of KIV-2 repeats carrying the variant for carriers (between 1 and 2). As KIV-2 variants are present in only some of the repeats, this captures both carrier status and the intra-repeat variant level.
 

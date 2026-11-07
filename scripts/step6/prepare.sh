@@ -11,7 +11,7 @@ rm -f $filename_vcf
 cp input/lpa.regenie.gz $filename_regenie
 cp input/ukb_combined_final_sorted_with_DS_noGT_afr.vcf.gz  $filename_vcf
 
-zcat $filename_regenie | awk -F'\t' 'BEGIN{OFS="\t"} NR>1 {print $1, $2, $4, $5}' > regenie.snps
+gzip -dc $filename_regenie | awk -F'\t' 'BEGIN{OFS="\t"} NR>1 {print $1, $2, $4, $5}' > regenie.snps
 
 echo #REGENIE
 wc -l regenie.snps

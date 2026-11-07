@@ -27,7 +27,7 @@ bcftools concat -a -Oz -o ${prefix}_kiv2.6_combined.vcf.gz \
     ${prefix}_kiv2.6_exon2.ids.sorted.vcf.gz
 tabix -p vcf -f ${prefix}_kiv2.6_combined.vcf.gz
 
-zcat ${prefix}_kiv2.6_combined.vcf.gz | \
+gzip -dc ${prefix}_kiv2.6_combined.vcf.gz | \
 awk -F'\t' 'BEGIN{OFS="\t"}
 /^#/ {print; next}
 {
@@ -50,7 +50,7 @@ bgzip ${prefix}_kiv2.6_combined_fixed.vcf
 tabix -p vcf -f ${prefix}_kiv2.6_combined_fixed.vcf.gz
 
 # Project KIV-2 exon positions onto chr6 (hg38, reverse strand)
-zcat ${prefix}_kiv2.6_combined_fixed.vcf.gz | \
+gzip -dc ${prefix}_kiv2.6_combined_fixed.vcf.gz | \
 awk 'BEGIN {
     OFS = "\t"
     # exon1 mapping

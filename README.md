@@ -202,7 +202,7 @@ wget https://github.com/seppinho/mutserve/releases/download/v2.0.3/mutserve.zip
 unzip mutserve.zip
 
 # Fix IDs to allow merging with imputed data
-zcat ukb_rap.txt.gz | sed -e 's/_23143_0_0_lpa.extracted.kiv2.realigned.bam//g' > ukb_rap_renamed.txt
+gzip -dc ukb_rap.txt.gz | sed -e 's/_23143_0_0_lpa.extracted.kiv2.realigned.bam//g' > ukb_rap_renamed.txt
 
 # Filter by PASS
 awk -F'\t' 'NR==1 || $2=="PASS"' ukb_rap_renamed.txt > ukb_rap_renamed_filtered.txt
