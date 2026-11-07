@@ -1,15 +1,11 @@
 # Getting Started with 1000 Genomes Test Data
 
-> [!WARNING]
-> 🚧 **Open TODOs (Silvia) before sharing with reviewers**
-> - 🏷️ **Pipeline release:** nf-VNTRepeat-count has no release yet. Create one and replace the commit hash in [Step 2.2](#22-estimate-kiv-2-copy-number) with `-r <release>`.
-
 The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is therefore missing from GWAS. This guide turns short-read sequencing data into the two inputs needed for GWAS and fine-mapping: a merged VCF with KIV-2 and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers. As UK Biobank data cannot be shared, it uses ten public samples from the [1000 Genomes 30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38). The framework can also be [applied to other VNTRs](#applying-the-framework-to-other-vntrs).
 
 | Step | Description | Runs on test data | Reproducibility |
 |---|---|---|---|
 | 1 | Extract *LPA*-region reads | ✓ (BAMs provided) | conda |
-| 2 | Call KIV-2 VNTR variation and estimate copy number | ✓ (output provided) | Nextflow |
+| 2 | Call KIV-2 VNTR variation and estimate copy number | ✓ (output provided) | Two containerised Nextflow pipelines |
 | 3 | Combine non-repetitive with repetitive region | ✓ | conda |
 | 4–7 | Phenotype file, GWAS, fine-mapping, dosage extraction | Requires a cohort with phenotype data; applicable to any trait (shown for Lp(a) in UK Biobank) | |
 
@@ -40,9 +36,32 @@ samtools view -b -o ../input/bams/HG00265.final.cram.LPA.bam \
 
 ## Step 2 - Call KIV-2 VNTR variation and estimate copy number
 
-Both parts of this step run as Nextflow pipelines. [Docker](https://docs.docker.com/get-docker/) must be installed and running.
+The core of the framework is two standalone Nextflow pipelines. Each is public, version-pinned and containerised, runs with a single command on Docker or Singularity, and can be applied to other VNTRs by changing its inputs.
 
-### 2.1 Call KIV-2 variants
+```mermaid
+flowchart LR
+    BAM[(LPA BAMs)] --> P1
+    P1["`**vntr-calling-nf**
+Step 2.1`"]
+    P1 --> CALLS[(KIV-2 variant calls)]
+    P1 --> RBAM[(Realigned BAMs)]
+    BAM --> P2
+    RBAM --> P2
+    P2["`**nf-VNTRepeat-count**
+Step 2.2`"]
+    P2 --> CN[(KIV-2 copy numbers)]
+```
+
+| | [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) | [nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count) |
+|---|---|---|
+| **Resolves** | Variants within the repeat, using the signature-sequence approach | Repeat copy number, from read coverage |
+| **Input** | *LPA* BAMs | *LPA* BAMs, realigned BAMs and exon coordinates |
+| **Output** | Per-sample variant calls with variant levels, realigned BAMs | Per-sample copy number estimates |
+| **Used in** | Step 3 (merged VCF) | Steps 4–5 (phenotype file, GWAS covariate) |
+
+[Docker](https://docs.docker.com/get-docker/) must be installed and running.
+
+### 2.1 Call KIV-2 variants with vntr-calling-nf
 
 KIV-2 variants are called with [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) using the signature-sequence approach. We run it on the three European samples (HG00265, HG01685, NA20772).
 
@@ -63,7 +82,7 @@ nextflow run genepi/vntr-calling-nf -r v0.4.10 -c step2.config -profile docker
 
 The VNTR calls are written to `output/1000g_eur/variant_calling/` and the realigned BAMs needed for Step 2.2 to `output/1000g_eur/realign_fastq/`. Our output of this step is provided with the same structure in [`input/step2-output/`](input/step2-output/), so you can compare your results with it.
 
-### 2.2 Estimate KIV-2 copy number
+### 2.2 Estimate KIV-2 copy number with nf-VNTRepeat-count
 
 KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count): mean coverage of the KIV-2 exons in the realigned BAMs (Step 2.1) divided by mean coverage of the unique *LPA* exons in the original BAMs (Step 1). The exon coordinates are provided in [`input/bed/`](input/bed/).
 
