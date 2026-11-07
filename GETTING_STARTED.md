@@ -98,7 +98,7 @@ params {
 
 Run the pipeline:
 ```
-NXF_VER=25.10.0 nextflow run genepi/nf-VNTRepeat-count -r d50227f0995b6becab5f60c4f75af3894f9395c4 -c copy_number.config -profile docker
+NXF_VER=25.10.0 nextflow run genepi/nf-VNTRepeat-count -r v1.0.0 -c copy_number.config -profile docker
 ```
 
 This pipeline requires Nextflow 25.10 or later, which is selected with `NXF_VER` and downloaded automatically on first use.
