@@ -105,7 +105,7 @@ This pipeline requires Nextflow 25.10 or later, which is selected with `NXF_VER`
 
 The KIV-2 copy number (`cne_vntr`) of all eight samples is written to `results/estimates/estimates.tsv`. It is the average number of KIV-2 copies per allele: coverage of the unique exons reflects the two alleles, while the single-repeat reference pools the repeats of both alleles. Twice this value is therefore the total copy number of a sample.
 
-Your result should match the `cne_vntr` column below. For comparison, the last column shows the total copy number from the DRAGEN-based KIV-2 caller of [Behera et al., BMC Medical Genomics 2024](https://doi.org/10.1186/s12920-024-02024-0). In these eight samples, our total is on average 1.2 copies lower (r = 0.98).
+Your result should match the `cne_vntr` column below. For comparison, the last column shows the total copy number from the DRAGEN-based KIV-2 caller of [Behera et al., BMC Medical Genomics 2024](https://doi.org/10.1186/s12920-024-02024-0). In these eight samples, our total is on average 1.2 copies lower (r = 0.98). Across all 2,504 1000 Genomes samples in our comparison, our total is on average 1.7 copies lower (r = 0.97). This offset is similar in all ancestries (1.5 to 1.9 copies lower), with a correlation of 0.96–0.97 in African, American, European and South Asian samples and 0.94 in East Asian samples.
 
 | Sample | `cne_vntr` | Total (2 × `cne_vntr`) | Behera et al. total |
 |---|---|---|---|
