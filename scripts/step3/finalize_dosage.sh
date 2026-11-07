@@ -35,7 +35,7 @@ cat combined.tsv | awk '{
 
 
 bgzip -c final.tsv > final.tsv.gz
-tabix -s 1 -b 2 -e 2 final.tsv.gz
+tabix -f -s 1 -b 2 -e 2 final.tsv.gz
 echo '##FORMAT=<ID=DS,Number=1,Type=Float,Description="Dosage: genotype dosage (0-2) for non-repetitive variants; 1 + fraction of KIV-2 repeats carrying the variant for KIV-2 carriers; 0 for non-carriers">' > ds_header.txt
 
 bcftools annotate -a final.tsv.gz   -h ds_header.txt   -c CHROM,POS,REF,ALT,FORMAT/DS   -Oz -o $file_ds $file_no_ds

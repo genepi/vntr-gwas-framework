@@ -39,7 +39,7 @@ rm combined.tsv
 
 sort -k1,1 -k2,2n final_unsorted.tsv > final.tsv
 bgzip -c final.tsv > final.tsv.gz
-tabix -s 1 -b 2 -e 2 final.tsv.gz
+tabix -f -s 1 -b 2 -e 2 final.tsv.gz
 
 # Create DS header
 echo '##FORMAT=<ID=DS,Number=1,Type=Float,Description="DS: overwritten from DS or GT mapping">' > ds_header.txt

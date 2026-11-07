@@ -84,24 +84,22 @@ The VNTR calls are written to `output/1000g/variant_calling/` and the realigned 
 
 ### 2.2 Estimate KIV-2 copy number with nf-VNTRepeat-count
 
-KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count). The method is an adaptation of the normalized-coverage approach of [Telis et al., JACC Basic Transl Sci 2025](https://doi.org/10.1016/j.jacbts.2025.04.012) that reuses the realigned BAMs from our variant calling pipeline (Step 2.1): mean coverage of the KIV-2 exons in these BAMs divided by mean coverage of the unique *LPA* exons in the original BAMs (Step 1). The exon coordinates are provided in [`input/bed/`](input/bed/).
+KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count). The method is an adaptation of the normalized-coverage approach of [Telis et al., JACC Basic Transl Sci 2025](https://doi.org/10.1016/j.jacbts.2025.04.012) that reuses the realigned BAMs from our variant calling pipeline (Step 2.1): mean coverage of the KIV-2 exons in these BAMs divided by mean coverage of the unique *LPA* exons in the original BAMs (Step 1). The exon coordinates are provided in [`scripts/step2/input/`](scripts/step2/input/).
 
 Create `copy_number.config`:
 ```
 params {
     bam_dir      = "../input/bams"
     bam_dir_vntr = "../input/step2-output/realign_fastq"
-    nonrep_bed   = "../input/bed/exons{1,2}.bed"
-    vntr_bed     = "../input/bed/kiv2-{1,2}.bed"
+    nonrep_bed   = "../scripts/step2/input/exons{1,2}.bed"
+    vntr_bed     = "../scripts/step2/input/kiv2-{1,2}.bed"
 }
 ```
 
 Run the pipeline:
 ```
-NXF_VER=25.10.0 nextflow run genepi/nf-VNTRepeat-count -r v1.0.0 -c copy_number.config -profile docker
+nextflow run genepi/nf-VNTRepeat-count -r v1.0.0 -c copy_number.config -profile docker
 ```
-
-This pipeline requires Nextflow 25.10 or later, which is selected with `NXF_VER` and downloaded automatically on first use.
 
 The KIV-2 copy number (`cne_vntr`) of all eight samples is written to `results/estimates/estimates.tsv`. It is the average number of KIV-2 copies per allele: coverage of the unique exons reflects the two alleles, while the single-repeat reference pools the repeats of both alleles. Twice this value is therefore the total copy number of a sample.
 
@@ -140,7 +138,7 @@ gzip -dc ../input/step2-output/variant_calling/1000g.txt.gz \
 # Rename the KIV-2 contig to 6
 sed 's/KIV2_6/6/' kiv2.fasta > kiv2_chr6.fasta
 
-java -jar mutserve.jar create-vcf \
+"$JAVA_HOME/bin/java" -jar mutserve.jar create-vcf \
     --input vntr_filtered.txt \
     --output vntr_filtered.vcf.gz \
     --reference kiv2_chr6.fasta
@@ -180,7 +178,7 @@ The remaining steps need a large cohort with phenotype data, so they cannot be r
 
 | Step | Description | Input from this guide |
 |---|---|---|
-| [4 - Phenotype file](README.md#step-4---estimate-per-sample-kiv-2-copy-number) | Combine KIV-2 copy numbers with phenotype data and covariates | Copy numbers (Step 2) |
+| [4 - Phenotype file](README.md#step-4---prepare-phenotype-file) | Combine KIV-2 copy numbers with phenotype data and covariates | Copy numbers (Step 2) |
 | [5 - GWAS](README.md#step-5---run-combined-gwas-for-lpa-trait) | Genome-wide association for Lp(a) with regenie via [nf-gwas](https://github.com/genepi/nf-gwas), with KIV-2 copy number as covariate | Merged VCF (Step 3), phenotype file (Step 4) |
 | [6 - Fine-mapping](README.md#step-6---fine-map-association-signals-using-susie) | SuSiE fine-mapping of the *LPA* locus using an LD matrix from the merged VCF | Merged VCF (Step 3), GWAS results (Step 5) |
 | [7 - Dosages](README.md#step-7---extract-dosages-for-credible-set-variants) | Per-sample dosages of credible-set variants for downstream analyses | Fine-mapping results (Step 6) |

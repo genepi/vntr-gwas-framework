@@ -6,9 +6,11 @@ dependencies:
     # Step 1
     - samtools=1.21
     # Step 2
-    - nextflow=24.10.1
+    - nextflow=25.10.0
+    - openjdk=17
     - wget
     # Step 3
     - bcftools=1.21
+    - htslib=1.21
     - gzip
     - unzip
