@@ -1,6 +1,6 @@
 # Getting Started with 1000 Genomes Test Data
 
-The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is therefore missing from GWAS. This guide turns short-read sequencing data into the two inputs needed for GWAS and fine-mapping: a merged VCF with KIV-2 and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers. As UK Biobank data cannot be shared, it uses ten public samples from the [1000 Genomes 30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38). The framework can also be [applied to other VNTRs](#applying-the-framework-to-other-vntrs).
+The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is therefore missing from GWAS. This guide turns short-read sequencing data into the two inputs needed for GWAS and fine-mapping: a merged VCF with KIV-2 and non-repetitive *LPA* variants, and per-sample KIV-2 copy numbers. As UK Biobank data cannot be shared, it uses eight public samples from the [1000 Genomes 30x high-coverage data](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38) (GRCh38). The framework can also be [applied to other VNTRs](#applying-the-framework-to-other-vntrs).
 
 | Step | Description | Runs on test data | Reproducibility |
 |---|---|---|---|
@@ -26,7 +26,7 @@ wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/v0.4.10/reference-
 
 ## Step 1 - Extract *LPA*-region reads
 
-The *LPA*-region BAMs for all ten samples are already provided in [`input/bams/`](input/bams/). They were extracted from the 30x CRAMs as follows (example for HG00265; the CRAM location of each sample is listed in the [sequence index](http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/1000G_2504_high_coverage.sequence.index)):
+The *LPA*-region BAMs for all eight samples are already provided in [`input/bams/`](input/bams/). They were extracted from the 30x CRAMs as follows (example for HG00265; the CRAM location of each sample is listed in the [sequence index](http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/1000G_2504_high_coverage.sequence.index)):
 ```
 samtools view -b -o ../input/bams/HG00265.final.cram.LPA.bam \
   -T http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa \
@@ -63,7 +63,7 @@ Step 2.2`"]
 
 ### 2.1 Call KIV-2 variants with vntr-calling-nf
 
-KIV-2 variants are called with [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) using the signature-sequence approach. We run it on all ten samples.
+KIV-2 variants are called with [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) using the signature-sequence approach. We run it on all eight samples.
 
 Create `step2.config`:
 ```
@@ -103,9 +103,9 @@ NXF_VER=25.10.0 nextflow run genepi/nf-VNTRepeat-count -r d50227f0995b6becab5f60
 
 This pipeline requires Nextflow 25.10 or later, which is selected with `NXF_VER` and downloaded automatically on first use.
 
-The KIV-2 copy number (`cne_vntr`) of all ten samples is written to `results/estimates/estimates.tsv`. It is the average number of KIV-2 copies per allele: coverage of the unique exons reflects the two alleles, while the single-repeat reference pools the repeats of both alleles. Twice this value is therefore the total copy number of a sample.
+The KIV-2 copy number (`cne_vntr`) of all eight samples is written to `results/estimates/estimates.tsv`. It is the average number of KIV-2 copies per allele: coverage of the unique exons reflects the two alleles, while the single-repeat reference pools the repeats of both alleles. Twice this value is therefore the total copy number of a sample.
 
-Your result should match the `cne_vntr` column below. For comparison, the last column shows the total copy number from the DRAGEN-based KIV-2 caller of [Behera et al., BMC Medical Genomics 2024](https://doi.org/10.1186/s12920-024-02024-0). In these ten samples, our total is on average 2.1 copies lower (r = 0.95).
+Your result should match the `cne_vntr` column below. For comparison, the last column shows the total copy number from the DRAGEN-based KIV-2 caller of [Behera et al., BMC Medical Genomics 2024](https://doi.org/10.1186/s12920-024-02024-0). In these eight samples, our total is on average 1.2 copies lower (r = 0.98).
 
 | Sample | `cne_vntr` | Total (2 × `cne_vntr`) | Behera et al. total |
 |---|---|---|---|
@@ -116,16 +116,14 @@ Your result should match the `cne_vntr` column below. For comparison, the last c
 | HG03391 | 17.09 | 34.18 | 35.32 |
 | HG03673 | 17.14 | 34.27 | 37.44 |
 | HG04186 | 20.51 | 41.01 | 40.75 |
-| NA18992 | 14.43 | 28.85 | 34.20 |
-| NA19087 | 19.34 | 38.68 | 45.12 |
 | NA20772 | 18.12 | 36.24 | 37.78 |
 
 ## Step 3 - Combine non-repetitive with repetitive region
 
-The VNTR calls are merged with variant calls for the non-repetitive *LPA* region. For 1000 Genomes, these come from the [high-coverage phased panel](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38), which was called from the same 30x CRAMs used in Step 1. The *LPA*-region VCF for all ten samples is already provided in [`input/vcf/`](input/vcf/). It was extracted as follows:
+The VNTR calls are merged with variant calls for the non-repetitive *LPA* region. For 1000 Genomes, these come from the [high-coverage phased panel](https://www.internationalgenome.org/data-portal/data-collection/30x-grch38), which was called from the same 30x CRAMs used in Step 1. The *LPA*-region VCF for all eight samples is already provided in [`input/vcf/`](input/vcf/). It was extracted as follows:
 ```
 bcftools view -r chr6:160530485-160665259 -c 1 \
-  -s HG00265,HG00766,HG01685,HG02697,HG03391,HG03673,HG04186,NA18992,NA19087,NA20772 \
+  -s HG00265,HG00766,HG01685,HG02697,HG03391,HG03673,HG04186,NA20772 \
   -Oz -o ../input/vcf/lpa_1000g.vcf.gz \
   http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20220422_3202_phased_SNV_INDEL_SV/1kGP_high_coverage_Illumina.chr6.filtered.SNV_INDEL_SV_phased_panel.vcf.gz
 ```
@@ -170,7 +168,7 @@ sh ../scripts/step3/merge_vntr_nonrep.sh vntr_filtered.vcf.gz 1000g
 sh ../scripts/step3/finalize_dosage.sh 1000g
 ```
 
-The merged VCF is written to `1000g_combined_final_sorted_with_DS_noGT.vcf.gz`. It contains all ten samples, and all variants are encoded as dosages (DS):
+The merged VCF is written to `1000g_combined_final_sorted_with_DS_noGT.vcf.gz`. It contains all eight samples, and all variants are encoded as dosages (DS):
 - **Non-repetitive variants:** genotype dosage (0, 1 or 2).
 - **KIV-2 variants:** 0 for non-carriers, and 1 + the fraction of KIV-2 repeats carrying the variant for carriers (between 1 and 2). As KIV-2 variants are present in only some of the repeats, this captures both carrier status and the intra-repeat variant level.
 

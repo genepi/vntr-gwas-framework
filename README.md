@@ -18,7 +18,7 @@ This repository contains three components:
 
 To launch the Shiny app locally, open `shiny_app/app.R` in RStudio and click *Run App*, or run `shiny::runApp("shiny_app")` from the repository root.
 
-To try the pipeline without UK Biobank access, follow the [Getting Started guide](GETTING_STARTED.md), which uses ten public 1000 Genomes samples.
+To try the pipeline without UK Biobank access, follow the [Getting Started guide](GETTING_STARTED.md), which uses eight public 1000 Genomes samples.
 
 ---
 
