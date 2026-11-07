@@ -84,7 +84,7 @@ The VNTR calls are written to `output/1000g/variant_calling/` and the realigned 
 
 ### 2.2 Estimate KIV-2 copy number with nf-VNTRepeat-count
 
-KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count): mean coverage of the KIV-2 exons in the realigned BAMs (Step 2.1) divided by mean coverage of the unique *LPA* exons in the original BAMs (Step 1). The exon coordinates are provided in [`input/bed/`](input/bed/).
+KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count). The method is an adaptation of the normalized-coverage approach of [Telis et al., JACC Basic Transl Sci 2025](https://doi.org/10.1016/j.jacbts.2025.04.012) that reuses the realigned BAMs from our variant calling pipeline (Step 2.1): mean coverage of the KIV-2 exons in these BAMs divided by mean coverage of the unique *LPA* exons in the original BAMs (Step 1). The exon coordinates are provided in [`input/bed/`](input/bed/).
 
 Create `copy_number.config`:
 ```
@@ -103,20 +103,22 @@ NXF_VER=25.10.0 nextflow run genepi/nf-VNTRepeat-count -r d50227f0995b6becab5f60
 
 This pipeline requires Nextflow 25.10 or later, which is selected with `NXF_VER` and downloaded automatically on first use.
 
-The KIV-2 copy number (`cne_vntr`) of all ten samples is written to `results/estimates/estimates.tsv`. Your result should match:
+The KIV-2 copy number (`cne_vntr`) of all ten samples is written to `results/estimates/estimates.tsv`. It is the average number of KIV-2 copies per allele: coverage of the unique exons reflects the two alleles, while the single-repeat reference pools the repeats of both alleles. Twice this value is therefore the total copy number of a sample.
 
-| Sample | `cne_vntr` |
-|---|---|
-| HG00265 | 15.61 |
-| HG00766 | 25.84 |
-| HG01685 | 12.35 |
-| HG02697 | 18.72 |
-| HG03391 | 17.09 |
-| HG03673 | 17.14 |
-| HG04186 | 20.51 |
-| NA18992 | 14.43 |
-| NA19087 | 19.34 |
-| NA20772 | 18.12 |
+Your result should match the `cne_vntr` column below. For comparison, the last column shows the total copy number from the DRAGEN-based KIV-2 caller of [Behera et al., BMC Medical Genomics 2024](https://doi.org/10.1186/s12920-024-02024-0). In these ten samples, our total is on average 2.1 copies lower (r = 0.95).
+
+| Sample | `cne_vntr` | Total (2 × `cne_vntr`) | Behera et al. total |
+|---|---|---|---|
+| HG00265 | 15.61 | 31.21 | 31.21 |
+| HG00766 | 25.84 | 51.68 | 51.79 |
+| HG01685 | 12.35 | 24.70 | 24.78 |
+| HG02697 | 18.72 | 37.45 | 41.14 |
+| HG03391 | 17.09 | 34.18 | 35.32 |
+| HG03673 | 17.14 | 34.27 | 37.44 |
+| HG04186 | 20.51 | 41.01 | 40.75 |
+| NA18992 | 14.43 | 28.85 | 34.20 |
+| NA19087 | 19.34 | 38.68 | 45.12 |
+| NA20772 | 18.12 | 36.24 | 37.78 |
 
 ## Step 3 - Combine non-repetitive with repetitive region
 
