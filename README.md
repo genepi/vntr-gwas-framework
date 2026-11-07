@@ -57,9 +57,9 @@ If you encounter any issues running the pipeline, please [open a GitHub issue](.
 The pipeline consists of the following steps:
 
 1. Extract *LPA*-region reads from UK Biobank whole-exome sequencing (WES) CRAM files
-2. Call KIV-2 VNTR variation from BAM/CRAM files
+2. Call KIV-2 VNTR variation and estimate copy number from BAM/CRAM files
 3. Combine non-repetitive with repetitive region
-4. Estimate per-sample KIV-2 copy number
+4. Prepare phenotype file
 5. Run combined GWAS for Lp(a) trait
 6. Fine-map association signals using SuSiE
 7. Extract dosages for credible-set variants
@@ -74,14 +74,24 @@ Extract LPA-region reads
 extract_lpa.sh`"]
     S1 --> BAM[(LPA BAMs)]
 
-    BAM --> S2
-
-    S2["`**Step 2**
+    subgraph STEP2["Step 2: two Nextflow pipelines"]
+        S2A["`**Step 2.1–2.3**
 Call KIV-2 VNTR variation
 vntr-calling-nf`"]
-    S2 --> VNTR[(VNTR calls
+        RBAM[(Realigned BAMs)]
+        S2B["`**Step 2.4**
+Estimate KIV-2 copy number
+nf-VNTRepeat-count`"]
+    end
+
+    BAM --> S2A
+    S2A --> RBAM
+    RBAM --> S2B
+    BAM --> S2B
+    S2A --> VNTR[(VNTR calls
 ukb_rap.txt.gz)]
-    S2 --> RBAM[(Realigned BAMs)]
+    S2B --> CN[(KIV-2 copy numbers
+estimates.tsv)]
 
     T[(TOPMed imputed data
 chr6 BGEN)] --> S3
@@ -93,11 +103,12 @@ Merge with imputed SNPs`"]
     S3 --> MVCF[(Merged VCF
 rep + non-rep)]
 
-    BAM --> S4
-    RBAM --> S4
+    CN --> S4
+    PD[(UKB phenotypes
+ukb_allancestries.txt)] --> S4
     S4["`**Step 4**
-CNE
-KIV-2 copy number + phenotype`"]
+Prepare phenotype file
+phenotype.Rmd`"]
     S4 --> PHENO[(Phenotype file
 + sample list)]
 
@@ -148,16 +159,16 @@ The CRAMs are stored in a bucket that cannot be accessed directly. We therefore 
 * Filter ids.txt by ancestry and save as `ids_by_ancestry.txt`
 * Execute `scripts/step1/extract_lpa.sh`.
 
-## Step 2 - Call KIV-2 VNTR variation from BAM/CRAM files
+## Step 2 - Call KIV-2 VNTR variation and estimate copy number from BAM/CRAM files
 
-VNTR variation is resolved using a previously [published Nextflow pipeline](https://github.com/genepi/vntr-calling-nf).
+VNTR variation is resolved using a previously [published Nextflow pipeline](https://github.com/genepi/vntr-calling-nf). KIV-2 copy number is then estimated with [nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count), an adaptation of the normalized-coverage approach of [Telis et al.](https://doi.org/10.1016/j.jacbts.2025.04.012) that reuses the realigned BAMs.
 
 ### Input/Output
 | | Files |
 |---|---|
 | **Input** | *LPA* BAMs from Step 1 |
-| **Output** | VNTR calls (`ukb_rap.txt.gz`); realigned BAMs (`realign_fastq/`) needed for Step 4 |
-| **Script** | `nextflow run genepi/vntr-calling-nf -c ukb.config` ([vntr-calling-nf](https://github.com/genepi/vntr-calling-nf)) |
+| **Output** | VNTR calls (`ukb_rap.txt.gz`); realigned BAMs (`realign_fastq/`); per-sample KIV-2 copy numbers (`estimates.tsv`) |
+| **Script** | `nextflow run genepi/vntr-calling-nf -c ukb.config` ([vntr-calling-nf](https://github.com/genepi/vntr-calling-nf)), `nextflow run genepi/nf-VNTRepeat-count -c copy_number.config` ([nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count)) |
 
 ### 2.1 Set up the pipeline
 Download the ROI-8 BED file (do not use the signature approach; only validated in EUR). For EUR, set `params.build="hg38"` and remove `params.region`.
@@ -176,7 +187,7 @@ params.region="ROI-8.bed"
 params.publish_realigned=true
 ```
 
-`params.publish_realigned=true` writes the realigned BAMs needed for Step 4 to `output/<project>/realign_fastq/`.
+`params.publish_realigned=true` writes the realigned BAMs needed for Step 2.4 to `output/<project>/realign_fastq/`.
 
 ### 2.3 Run the pipeline
 ```
@@ -184,6 +195,24 @@ nextflow run genepi/vntr-calling-nf -r <version> -c ukb.config -profile docker
 ```
 
 > **Note:** Pin `-r` to a specific release tag (current: `-r v0.4.10`) to ensure reproducibility. Check available releases at [github.com/genepi/vntr-calling-nf](https://github.com/genepi/vntr-calling-nf/releases).
+
+### 2.4 Estimate KIV-2 copy number
+The BED files with the exon coordinates are provided in [`scripts/step2/input/`](scripts/step2/input/). Create `copy_number.config`:
+```
+params {
+    bam_dir      = "lpa_bams"
+    bam_dir_vntr = "output/ukb_rap_ancestry/realign_fastq"
+    nonrep_bed   = "scripts/step2/input/exons{1,2}.bed"
+    vntr_bed     = "scripts/step2/input/kiv2-{1,2}.bed"
+}
+```
+
+Run the pipeline:
+```
+nextflow run genepi/nf-VNTRepeat-count -r v1.0.0 -c copy_number.config -profile docker
+```
+
+The KIV-2 copy numbers are written to `results/estimates/estimates.tsv`, which is the input of Step 4.
 
 ## Step 3 - Combine non-repetitive with repetitive region
 The VNTR calls from Step 2 are converted to VCF format and merged with TOPMed imputed SNPs covering the non-repetitive *LPA* locus. Dosage (DS) fields are harmonised across both sources to produce a single analysis-ready VCF.
@@ -239,24 +268,16 @@ sh merge_vntr_nonrep.sh
 sh finalize_dosage.sh
 ```
 
-## Step 4 - Estimate per-sample KIV-2 copy number
+## Step 4 - Prepare phenotype file
 
-Coverage-based copy number estimation (CNE) is performed using the original *LPA* BAMs and the realigned BAMs from Step 2. The resulting per-sample KIV-2 copy numbers are combined with Lp(a) phenotype data and covariates into a single phenotype file used for GWAS.
+The per-sample KIV-2 copy numbers from Step 2.4 are combined with Lp(a) phenotype data and covariates into a single phenotype file used for GWAS.
 
 ### Input/Output
 | | Files |
 |---|---|
-| **Input** | *LPA* BAMs from Step 1 (`CRAMS/`), realigned BAMs from Step 2 (`realigned/`), BED files in `scripts/step4/input/` |
-| **Output** | `coverage_summary_ukb.txt`; `phenotype_ukb_estimates_ancestry.txt` (per-sample KIV-2 copy number + Lp(a) phenotype + covariates) |
-| **Script** | `scripts/step4/calc_estimates.sh`, `scripts/step4/phenotype.Rmd` |
-
-### 4.1 Compute coverage estimates
-
-```
-sh calc_estimates.sh
-```
-
-### 4.2 Estimate copy number and prepare phenotype file
+| **Input** | `estimates.tsv` from Step 2.4, `ukb_allancestries.txt` |
+| **Output** | `phenotype_ukb_estimates_ancestry.txt` (per-sample KIV-2 copy number + Lp(a) phenotype + covariates) |
+| **Script** | `scripts/step4/phenotype.Rmd` |
 
 The Rmd script requires a tab-separated phenotype file (`ukb_allancestries.txt`) containing the following UK Biobank fields:
 
@@ -362,13 +383,13 @@ cp output/afr_credible_sets_pos.txt input/
 
 | Tool | Version | Used in |
 |---|---|---|
-| Nextflow | ≥24.x | Steps 2, 5 |
+| Nextflow | ≥25.10 | Steps 2, 5 |
 | [vntr-calling-nf](https://github.com/genepi/vntr-calling-nf) | 0.4.10 | Step 2 |
+| [nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count) | 1.0.0 | Step 2 |
 | [nf-gwas](https://github.com/genepi/nf-gwas) | 1.0.11 | Step 5 |
 | mutserve | 2.0.3 | Step 3 |
 | qctool | — | Step 3 |
 | bcftools | — | Steps 3, 4, 6 |
-| bedtools | — | Step 4 |
 | R | — | Steps 4, 6 |
 | genomic-utils | — | Step 7 |
 
@@ -385,17 +406,17 @@ R packages used in Steps 4 and 6: `dplyr`, `tidyr`, `ggplot2`, `stringr`, `knitr
 │   │   └── environment.yml           # conda environment for DNAnexus CLI
 │   ├── step1/
 │   │   └── extract_lpa.sh            # Step 1: download CRAMs, extract LPA BAMs
+│   ├── step2/
+│   │   └── input/
+│   │       ├── exons1.bed            # Step 2: BED files for copy number estimation
+│   │       ├── exons2.bed
+│   │       ├── kiv2-1.bed
+│   │       └── kiv2-2.bed
 │   ├── step3/
 │   │   ├── gt_to_dosage.sh           # Step 3: fill missing DS fields from GT in non-repetitive VCF
 │   │   ├── merge_vntr_nonrep.sh      # Step 3: merge VNTR + imputed VCF
 │   │   └── finalize_dosage.sh        # Step 3: set final DS in merged VCF and remove GT
 │   ├── step4/
-│   │   ├── input/
-│   │   │   ├── exons1.bed            # Step 4: BED file for coverage
-│   │   │   ├── exons2.bed
-│   │   │   ├── kiv2-1.bed
-│   │   │   └── kiv2-2.bed
-│   │   ├── calc_estimates.sh         # Step 4: bedtools coverage
 │   │   └── phenotype.Rmd             # Step 4: KIV-2 copy number + GWAS phenotype
 │   ├── step5/
 │   │   └── gwas.config            # Step 5: nf-gwas / regenie config
