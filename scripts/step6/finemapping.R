@@ -136,6 +136,12 @@ betahat <- regenie$BETA
 sebetahat <- regenie$SE
 z_scores <- betahat / sebetahat
 
+# GWAS sample size of the respective analysis, taken from the regenie output
+# (N is constant across variants: AFR 5,726; SAS 6,553; EUR 131,152)
+n_gwas <- unique(regenie$N)
+stopifnot(length(n_gwas) == 1)
+cat("GWAS sample size (n):", n_gwas, "\n")
+
 ## LD matrix of residuals after covariate adjustment ===============
 
 ### QC =============
@@ -176,14 +182,14 @@ dimnames(ld_matrix) <- NULL
 # should be low (rule of thumb: below 0.1?)
 lambda = estimate_s_rss(z_scores, 
                         ld_matrix, 
-                        n=5726)
+                        n=n_gwas)
 lambda
 
 # Compute Distribution of z-scores of Variant j Given Other z-scores, and Detect Possible Allele Switch Issue
 # should be on one line if from the same data, if from a reference panel should be close around line, extreme outliers can point to allele switches
 condz_in = kriging_rss(z_scores, 
                        ld_matrix, 
-                       n=5726)
+                       n=n_gwas)
 condz_in$plot
 
 # Add lambda annotation to the plot
@@ -206,7 +212,7 @@ ggsave(filename = "output/susie_diagnostics_plot_refined_estimates_adjust_afr.pn
 susie_out_resid <- susie_rss(
   z = z_scores,
   R = ld_matrix,
-  n = 5726, 
+  n = n_gwas, 
   L = 50,
   estimate_residual_variance = TRUE,
   check_input = TRUE,  # Enable input checks,
