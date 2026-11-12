@@ -261,17 +261,25 @@ bcftools view --force-samples -S output/samples_africans.txt \
 
 ## Step 5 - Run combined GWAS for Lp(a) trait
 
-A genome-wide association study for Lp(a) is run using regenie via the nf-gwas Nextflow pipeline. The merged VCF (Step 3) and phenotype file (Step 4) are used as input, with array genotypes for regenie's whole-genome regression step.
+A genome-wide association study for Lp(a) is run using regenie via the nf-gwas Nextflow pipeline. The merged VCF (Step 3) and phenotype file (Step 4) are used as input, with genome-wide array genotypes (chromosomes 1–22) for regenie's whole-genome regression (regenie Step 1).
 
 | | Files |
 |---|---|
-| **Input** | `ukb_combined_final_sorted_with_DS_noGT_afr.vcf.gz` (Step 4, ancestry-filtered), `phenotype_ukb_estimates_ancestry.txt` + covariates file (Step 4), array genotypes `ukb22418_c6_b0_v2.*` (PLINK format) |
+| **Input** | `ukb_combined_final_sorted_with_DS_noGT_afr.vcf.gz` (Step 4, ancestry-filtered), `phenotype_ukb_estimates_ancestry.txt` + covariates file (Step 4), array genotypes `ukb22418_c{1..22}_b0_v2.*` (PLINK format, merged to `ukb22418_c1_22_merged.*`) |
 | **Output** | GWAS summary statistics `lpa.regenie_<ancestry>.gz` |
 | **Script** | `scripts/step5/gwas.config` (`nextflow run genepi/nf-gwas -c gwas.config`) |
 
 ### 5.1 Prepare GWAS
 
-- Download array data: `dx download "Bulk/Genotype Results/Genotype calls/ukb22418_c6_b0_v2*"`
+Regenie Step 1 fits the whole-genome regression model on the array genotypes of all autosomes. Download them and merge them into one PLINK fileset:
+```
+for chr in {1..22}; do
+  dx download "Bulk/Genotype Results/Genotype calls/ukb22418_c${chr}_b0_v2.*"
+done
+for chr in {2..22}; do echo ukb22418_c${chr}_b0_v2; done > merge_list.txt
+plink --bfile ukb22418_c1_b0_v2 --merge-list merge_list.txt --make-bed --out ukb22418_c1_22_merged
+```
+
 - Prepare covariates file: `cp phenotype_ukb_estimates_ancestry.txt phenotype_ukb_estimates_ancestry_covariates.txt`
 
 ### 5.2 Run GWAS
@@ -346,6 +354,7 @@ cp output/afr_credible_sets_pos.txt input/
 | mutserve | 2.0.3 | Step 3 |
 | qctool | — | Step 3 |
 | bcftools | — | Steps 3, 4, 6 |
+| PLINK 1.9 | — | Step 5 |
 | R | — | Steps 4, 6 |
 | genomic-utils | — | Step 7 |
 
