@@ -4,6 +4,8 @@ This document describes all steps of the analysis as run on the UK Biobank Resea
 
 > **Data availability:** Due to UK Biobank data access restrictions, we are unable to share non-aggregated data or sample IDs. Analyses were conducted under UKB application number **62905**. Please apply for data access directly through the [UK Biobank](https://www.ukbiobank.ac.uk/).
 
+> **Note on genome builds:** Read extraction, KIV-2 variant calling and copy-number estimation (Steps 1–2) are performed on the UK Biobank exome CRAMs, which are aligned to GRCh38, for all ancestries. For merging with imputed data (Step 3), this guide documents the GRCh38/TOPMed workflow used for African and South Asian participants. 
+
 ## Pipeline Overview
 
 The pipeline consists of the following steps:
@@ -168,6 +170,8 @@ The KIV-2 copy numbers are written to `results/estimates/estimates.tsv`, which i
 
 ## Step 3 - Combine non-repetitive with repetitive region
 The VNTR calls from Step 2 are converted to VCF format and merged with TOPMed imputed SNPs covering the non-repetitive *LPA* locus. Dosage (DS) fields are harmonised across both sources to produce a single analysis-ready VCF.
+
+> **European participants:** instead of the TOPMed data, the non-repetitive *LPA* region was taken from the UK Biobank v3 imputation (GRCh37), and KIV-2 variant positions were projected onto GRCh37 coordinates. All other steps are identical.
 
 ### Input/Output
 | | Files |
