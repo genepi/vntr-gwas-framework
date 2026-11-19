@@ -4,8 +4,8 @@ The KIV-2 VNTR of *LPA* is not resolved by standard variant calling and is there
 
 | Step | Description | Runs on test data | Reproducibility |
 |---|---|---|---|
-| 1 | Extract *LPA*-region reads | ✓ (BAMs provided) | conda |
-| 2 | Call KIV-2 VNTR variation and estimate copy number | ✓ (output provided) | Two containerised Nextflow pipelines |
+| 1 | Extract *LPA*-region reads | Already done: the extracted BAMs are provided in [`input/bams/`](input/bams/) | conda |
+| 2 | Call KIV-2 VNTR variation and estimate copy number | ✓ (our output is provided in [`input/step2-output/`](input/step2-output/) for comparison) | Two containerised Nextflow pipelines |
 | 3 | Combine non-repetitive with repetitive region | ✓ | conda |
 | 4–7 | Phenotype file, GWAS, fine-mapping, dosage extraction | Requires a cohort with phenotype data; applicable to any trait (shown for Lp(a) in UK Biobank) | |
 
@@ -28,7 +28,7 @@ wget https://raw.githubusercontent.com/genepi/vntr-calling-nf/v0.4.10/reference-
 
 ## Step 1 - Extract *LPA*-region reads
 
-The *LPA*-region BAMs for all eight samples are already provided in [`input/bams/`](input/bams/). They were extracted from the 30x CRAMs as follows (example for HG00265; the CRAM location of each sample is listed in the [sequence index](http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/1000G_2504_high_coverage.sequence.index)):
+The *LPA*-region BAMs for all eight samples are already provided in [`input/bams/`](input/bams/), so this step does not need to be run. For reference, the following command shows how they were extracted from the 30x CRAMs, using HG00265 as an example. The CRAM location of each sample is listed in the [sequence index](http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/1000G_2504_high_coverage.sequence.index).
 ```
 samtools view -b -o ../input/bams/HG00265.final.cram.LPA.bam \
   -T http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/GRCh38_reference_genome/GRCh38_full_analysis_set_plus_decoy_hla.fa \
@@ -59,7 +59,7 @@ Step 2.2`"]
 | **Resolves** | Variants within the repeat, using the signature-sequence approach | Repeat copy number, from read coverage |
 | **Input** | *LPA* BAMs | *LPA* BAMs, realigned BAMs and exon coordinates |
 | **Output** | Per-sample variant calls with variant levels, realigned BAMs | Per-sample copy number estimates |
-| **Used in** | Step 3 (merged VCF) | Steps 4–5 (phenotype file, GWAS covariate) |
+| **Output used later in** | Step 3 (merged VCF) | Steps 4–5 (phenotype file, GWAS covariate) |
 
 [Docker](https://docs.docker.com/get-docker/) must be installed and running.
 
@@ -86,7 +86,17 @@ The VNTR calls are written to `output/1000g/variant_calling/` and the realigned 
 
 ### 2.2 Estimate KIV-2 copy number with nf-VNTRepeat-count
 
-KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count). The method is an adaptation of the normalized-coverage approach of [Telis et al., JACC Basic Transl Sci 2025](https://doi.org/10.1016/j.jacbts.2025.04.012) that reuses the realigned BAMs from our variant calling pipeline (Step 2.1): mean coverage of the KIV-2 exons in these BAMs divided by mean coverage of the unique *LPA* exons in the original BAMs (Step 1). The exon coordinates are provided in [`scripts/step2/input/`](scripts/step2/input/).
+KIV-2 copy number is estimated from coverage with [nf-VNTRepeat-count](https://github.com/genepi/nf-VNTRepeat-count). The method is an adaptation of the normalized-coverage approach of [Telis et al., JACC Basic Transl Sci 2025](https://doi.org/10.1016/j.jacbts.2025.04.012) that reuses the realigned BAMs from our variant calling pipeline (Step 2.1). The exon coordinates are provided in [`scripts/step2/input/`](scripts/step2/input/).
+
+The copy number is calculated as:
+```
+cne_vntr = mean coverage of the KIV-2 exons (realigned BAMs, Step 2.1)
+           / mean coverage of the unique LPA exons (original BAMs, Step 1)
+```
+- The unique *LPA* exons occur once per allele, so their coverage corresponds to the two alleles of a sample.
+- In the realigned BAMs, the reads of all KIV-2 repeats of both alleles are mapped to a single repeat. Their coverage therefore grows with the total number of KIV-2 copies of the sample.
+
+As the denominator corresponds to two alleles, `cne_vntr` is the average number of KIV-2 copies per allele. The total copy number of a sample is 2 × `cne_vntr`.
 
 Create `copy_number.config`:
 ```
@@ -103,7 +113,7 @@ Run the pipeline:
 nextflow run genepi/nf-VNTRepeat-count -r v1.0.0 -c copy_number.config -profile docker
 ```
 
-The KIV-2 copy number (`cne_vntr`) of all eight samples is written to `results/estimates/estimates.tsv`. It is the average number of KIV-2 copies per allele: coverage of the unique exons reflects the two alleles, while the single-repeat reference pools the repeats of both alleles. Twice this value is therefore the total copy number of a sample.
+The KIV-2 copy number (`cne_vntr`) of all eight samples is written to `results/estimates/estimates.tsv`.
 
 Your result should match the `cne_vntr` column below. For comparison, the last column shows the total copy number from the DRAGEN-based KIV-2 caller of [Behera et al., BMC Medical Genomics 2024](https://doi.org/10.1186/s12920-024-02024-0). In these eight samples, our total is on average 1.2 copies lower (r = 0.98). Across all 2,504 1000 Genomes samples in our comparison, our total is on average 1.7 copies lower (r = 0.97). This offset is similar in all ancestries (1.5 to 1.9 copies lower), with a correlation of 0.96–0.97 in African, American, European and South Asian samples and 0.94 in East Asian samples.
 
@@ -129,6 +139,11 @@ bcftools view -r chr6:160530485-160665259 -c 1 \
 ```
 
 ### 3.1 Convert VNTR results to a VCF file
+The VNTR calls from Step 2.1 are a tab-separated text file with one row per sample and variant. They are converted to a VCF file with [mutserve](https://github.com/seppinho/mutserve), which is provided in [`scripts/step3/`](scripts/step3/):
+1. The sample names in the text file are BAM file names. They are shortened to the sample IDs (e.g. `HG00265`), so that they match the sample IDs in the non-repetitive VCF.
+2. Only variants that passed the quality filters of vntr-calling-nf (`PASS` in the second column) are kept.
+3. The contig of the KIV-2 reference is renamed from `KIV2_6` to `6`, so that the VCF already uses chromosome 6. The positions are still relative to the single repeat and are projected onto chromosome 6 in Step 3.3.
+4. `mutserve create-vcf` writes the filtered calls to a VCF file.
 ```
 unzip ../scripts/step3/mutserve.zip
 
