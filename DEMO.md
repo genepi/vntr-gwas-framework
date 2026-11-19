@@ -138,46 +138,17 @@ bcftools view -r chr6:160530485-160665259 -c 1 \
   http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20220422_3202_phased_SNV_INDEL_SV/1kGP_high_coverage_Illumina.chr6.filtered.SNV_INDEL_SV_phased_panel.vcf.gz
 ```
 
-### 3.1 Convert VNTR results to a VCF file
-The VNTR calls from Step 2.1 are a tab-separated text file with one row per sample and variant. They are converted to a VCF file with [mutserve](https://github.com/seppinho/mutserve), which is provided in [`scripts/step3/`](scripts/step3/):
-1. The sample names in the text file are BAM file names. They are shortened to the sample IDs (e.g. `HG00265`), so that they match the sample IDs in the non-repetitive VCF.
-2. Only variants that passed the quality filters of vntr-calling-nf (`PASS` in the second column) are kept.
-3. The contig of the KIV-2 reference is renamed from `KIV2_6` to `6`, so that the VCF already uses chromosome 6. The positions are still relative to the single repeat and are projected onto chromosome 6 in Step 3.3.
-4. `mutserve create-vcf` writes the filtered calls to a VCF file.
+The KIV-2 variants are called on a single-repeat reference, where their positions have no meaning on chromosome 6. The scripts in [`scripts/step3/`](scripts/step3/) project them onto chromosome 6 coordinates, taking into account that *LPA* lies on the reverse strand, and merge them with the non-repetitive variants. This places repetitive and non-repetitive variants in one VCF that standard GWAS and fine-mapping tools can use directly.
+
+The five scripts are run in this order:
+1. `vntr_to_vcf.sh` converts the VNTR calls from Step 2.1 to a VCF file with [mutserve](https://github.com/seppinho/mutserve). It keeps only variants that passed the filters of vntr-calling-nf and uses the sample IDs as sample names.
+2. `prepare_nonrep.sh` renames `chr6` to `6` in the non-repetitive VCF and adds an empty DS field.
+3. `gt_to_dosage.sh` fills the DS field of the non-repetitive variants from their genotypes (0, 1 or 2).
+4. `merge_vntr_nonrep.sh` projects the KIV-2 variants onto chromosome 6 and merges them with the non-repetitive variants.
+5. `finalize_dosage.sh` sets the DS field of the KIV-2 variants from their variant level (see below) and removes the genotypes, so that all variants are analysed as dosages.
 ```
-unzip ../scripts/step3/mutserve.zip
-
-# Use sample IDs as names and keep PASS variants only
-gzip -dc ../input/step2-output/variant_calling/1000g.txt.gz \
-  | sed -E 's/\.[.A-Za-z0-9]*realigned\.bam//g' \
-  | awk -F'\t' 'NR==1 || $2=="PASS"' > vntr_filtered.txt
-
-# Rename the KIV-2 contig to 6
-sed 's/KIV2_6/6/' kiv2.fasta > kiv2_chr6.fasta
-
-"$JAVA_HOME/bin/java" -jar mutserve.jar create-vcf \
-    --input vntr_filtered.txt \
-    --output vntr_filtered.vcf.gz \
-    --reference kiv2_chr6.fasta
-```
-
-### 3.2 Prepare the non-repetitive region
-Rename `chr6` to `6` and add an empty DS field, which is filled from the genotypes in the next step:
-```
-echo "chr6 6" > chr_names.txt
-echo '##FORMAT=<ID=DS,Number=1,Type=Float,Description="Genotype dosage">' > ds.hdr
-
-bcftools annotate --rename-chrs chr_names.txt -h ds.hdr -Oz -o region_chr6.vcf.gz ../input/vcf/lpa_1000g.vcf.gz
-```
-
-### 3.3 Fix dosages and merge both regions
-The KIV-2 variants are called on a single-repeat reference, where their positions have no meaning on chromosome 6. `merge_vntr_nonrep.sh` projects the variants of both KIV-2 exons onto chromosome 6 coordinates, taking into account that *LPA* lies on the reverse strand. This places repetitive and non-repetitive variants in one VCF that standard GWAS and fine-mapping tools can use directly.
-
-The three scripts are run in this order:
-1. `gt_to_dosage.sh` fills the DS field of the non-repetitive variants from their genotypes (0, 1 or 2).
-2. `merge_vntr_nonrep.sh` projects the KIV-2 variants onto chromosome 6 and merges them with the non-repetitive variants.
-3. `finalize_dosage.sh` sets the DS field of the KIV-2 variants from their variant level (see below) and removes the genotypes, so that all variants are analysed as dosages.
-```
+sh ../scripts/step3/vntr_to_vcf.sh ../input/step2-output/variant_calling/1000g.txt.gz kiv2.fasta vntr_filtered.vcf.gz
+sh ../scripts/step3/prepare_nonrep.sh ../input/vcf/lpa_1000g.vcf.gz
 sh ../scripts/step3/gt_to_dosage.sh
 sh ../scripts/step3/merge_vntr_nonrep.sh vntr_filtered.vcf.gz 1000g
 sh ../scripts/step3/finalize_dosage.sh 1000g

@@ -1,5 +1,5 @@
 set -e
-# VNTR calls converted to VCF (Step 3.1)
+# VNTR calls converted to VCF (vntr_to_vcf.sh)
 vntr_vcf="${1:-ukb_rap_renamed_filtered.vcf.gz}"
 # Prefix for all output files (final output: <prefix>_combined_final_sorted.vcf.gz)
 prefix="${2:-ukb}"
